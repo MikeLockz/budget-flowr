@@ -1,10 +1,21 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, GridReadyEvent, GridApi } from 'ag-grid-community';
+import { ColDef, GridReadyEvent, GridApi, ClientSideRowModelModule, ValidationModule, ModuleRegistry, PaginationModule, RowSelectionModule, TextFilterModule, NumberFilterModule, DateFilterModule, CustomFilterModule, ColumnAutoSizeModule } from 'ag-grid-community';
 
 // Import AG Grid styles
-import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  ValidationModule,
+  PaginationModule,
+  RowSelectionModule,
+  TextFilterModule,
+  NumberFilterModule,
+  DateFilterModule,
+  CustomFilterModule,
+  ColumnAutoSizeModule,
+]);
 
 
 
@@ -16,7 +27,7 @@ interface AgGridBaseProps<TData = Record<string, unknown>> {
   style?: React.CSSProperties;
   pagination?: boolean;
   paginationPageSize?: number;
-  rowSelection?: 'single' | 'multiple';
+  rowSelection?: { mode: 'singleRow' | 'multiRow' } | undefined;
   onGridReady?: (params: GridReadyEvent) => void;
   onSelectionChanged?: (event: unknown) => void;
 }
@@ -83,11 +94,23 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
         pagination={pagination}
-        paginationPageSize={paginationPageSize}
-        rowSelection={rowSelection}
-        onGridReady={handleGridReady}
-        onSelectionChanged={onSelectionChanged}
-      />
+      paginationPageSize={paginationPageSize}
+      paginationPageSizeSelector={[5, 10, 20]}
+      rowSelection={rowSelection}
+      onGridReady={handleGridReady}
+    onSelectionChanged={onSelectionChanged}
+    modules={[
+      ClientSideRowModelModule,
+      ValidationModule,
+      PaginationModule,
+      RowSelectionModule,
+      TextFilterModule,
+      NumberFilterModule,
+      DateFilterModule,
+      CustomFilterModule,
+      ColumnAutoSizeModule,
+    ]}
+  />
     </div>
   );
 };
@@ -99,12 +122,12 @@ export const ExampleDataGrid: React.FC = () => {
   // Sample column definitions
   const columnDefs: ColDef[] = [
     { field: 'id', headerName: 'ID', width: 70 },
-    { field: 'name', headerName: 'Name', filter: 'agTextColumnFilter' },
-    { field: 'category', headerName: 'Category', filter: 'agTextColumnFilter' },
+    { field: 'name', headerName: 'Name', filter: 'text' },
+    { field: 'category', headerName: 'Category', filter: 'text' },
     { 
       field: 'amount', 
       headerName: 'Amount', 
-      filter: 'agNumberColumnFilter',
+      filter: 'number',
       valueFormatter: (params) => {
         return params.value ? `$${params.value.toFixed(2)}` : '';
       }
@@ -112,7 +135,7 @@ export const ExampleDataGrid: React.FC = () => {
     { 
       field: 'date', 
       headerName: 'Date', 
-      filter: 'agDateColumnFilter',
+      filter: 'date',
       valueFormatter: (params) => {
         if (!params.value) return '';
         const date = new Date(params.value);
@@ -143,7 +166,6 @@ export const ExampleDataGrid: React.FC = () => {
     sortable: true,
     filter: true,
     resizable: true,
-    floatingFilter: true,
   };
 
   return (
@@ -153,7 +175,7 @@ export const ExampleDataGrid: React.FC = () => {
       defaultColDef={defaultColDef}
       pagination={true}
       paginationPageSize={5}
-      rowSelection="multiple"
+      rowSelection={{ mode: 'multiRow' }}
     />
   );
 };
