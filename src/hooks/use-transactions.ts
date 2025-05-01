@@ -1,107 +1,32 @@
+// Replace mock API functions with Dexie.js database operations
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { db, Transaction as TransactionType } from '@/lib/db';
 
-// Define transaction type
-export interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  category: string;
-  amount: number;
-  type: 'income' | 'expense';
-  status: 'completed' | 'pending' | 'upcoming';
-}
-
-// Mock API functions
-const fetchTransactions = async (): Promise<Transaction[]> => {
-  // In a real app, this would be an API call
-  // For demo purposes, we'll return mock data
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        {
-          id: '1',
-          date: '2025-04-15',
-          description: 'Groceries',
-          category: 'Food',
-          amount: 125.5,
-          type: 'expense',
-          status: 'completed',
-        },
-        {
-          id: '2',
-          date: '2025-04-01',
-          description: 'Salary',
-          category: 'Income',
-          amount: 3500,
-          type: 'income',
-          status: 'completed',
-        },
-        {
-          id: '3',
-          date: '2025-04-10',
-          description: 'Electricity Bill',
-          category: 'Utilities',
-          amount: 85.2,
-          type: 'expense',
-          status: 'pending',
-        },
-        {
-          id: '4',
-          date: '2025-04-05',
-          description: 'Internet',
-          category: 'Utilities',
-          amount: 65,
-          type: 'expense',
-          status: 'completed',
-        },
-        {
-          id: '5',
-          date: '2025-04-30',
-          description: 'Rent',
-          category: 'Housing',
-          amount: 1200,
-          type: 'expense',
-          status: 'upcoming',
-        },
-      ]);
-    }, 500); // Simulate network delay
-  });
+const fetchTransactions = async (): Promise<TransactionType[]> => {
+  return db.transactions.toArray();
 };
 
-const addTransaction = async (transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
-  // In a real app, this would be an API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newTransaction = {
-        ...transaction,
-        id: Math.random().toString(36).substring(2, 9),
-      };
-      resolve(newTransaction);
-    }, 500);
-  });
+const addTransaction = async (transaction: Omit<TransactionType, 'id'>): Promise<TransactionType> => {
+  const id = await db.transactions.add(transaction as TransactionType);
+  const newTransaction = await db.transactions.get(id);
+  if (!newTransaction) throw new Error('Failed to add transaction');
+  return newTransaction;
 };
 
-const updateTransaction = async (transaction: Transaction): Promise<Transaction> => {
-  // In a real app, this would be an API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(transaction);
-    }, 500);
-  });
+const updateTransaction = async (transaction: TransactionType): Promise<TransactionType> => {
+  await db.transactions.put(transaction);
+  const updatedTransaction = await db.transactions.get(transaction.id);
+  if (!updatedTransaction) throw new Error('Failed to update transaction');
+  return updatedTransaction;
 };
 
 const deleteTransaction = async (id: string): Promise<string> => {
-  // In a real app, this would be an API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(id);
-    }, 500);
-  });
+  await db.transactions.delete(id);
+  return id;
 };
 
-// Query hooks
 export const useTransactions = () => {
-  return useQuery({
+  return useQuery<TransactionType[]>({
     queryKey: ['transactions'],
     queryFn: fetchTransactions,
   });
@@ -109,12 +34,11 @@ export const useTransactions = () => {
 
 export const useAddTransaction = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation({
+
+  return useMutation<TransactionType, Error, Omit<TransactionType, 'id'>>({
     mutationFn: addTransaction,
     onSuccess: (newTransaction) => {
-      // Update the transactions query data
-      queryClient.setQueryData<Transaction[]>(['transactions'], (oldData = []) => [
+      queryClient.setQueryData<TransactionType[]>(['transactions'], (oldData = []) => [
         ...oldData,
         newTransaction,
       ]);
@@ -124,12 +48,11 @@ export const useAddTransaction = () => {
 
 export const useUpdateTransaction = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation({
+
+  return useMutation<TransactionType, Error, TransactionType>({
     mutationFn: updateTransaction,
     onSuccess: (updatedTransaction) => {
-      // Update the transactions query data
-      queryClient.setQueryData<Transaction[]>(['transactions'], (oldData = []) =>
+      queryClient.setQueryData<TransactionType[]>(['transactions'], (oldData = []) =>
         oldData.map((transaction) =>
           transaction.id === updatedTransaction.id ? updatedTransaction : transaction
         )
@@ -140,12 +63,11 @@ export const useUpdateTransaction = () => {
 
 export const useDeleteTransaction = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation({
+
+  return useMutation<string, Error, string>({
     mutationFn: deleteTransaction,
     onSuccess: (deletedId) => {
-      // Update the transactions query data
-      queryClient.setQueryData<Transaction[]>(['transactions'], (oldData = []) =>
+      queryClient.setQueryData<TransactionType[]>(['transactions'], (oldData = []) =>
         oldData.filter((transaction) => transaction.id !== deletedId)
       );
     },
