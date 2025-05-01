@@ -5,42 +5,67 @@ import { LineChart, BarChart, PieChart } from '../components/charts/echarts-base
 import { ExampleDataGrid } from '@/components/data-grid/ag-grid-base';
 import { useTransactions } from '@/hooks/use-transactions';
 import { formatCurrency } from '@/lib/utils';
+import { Transaction } from '@/lib/db';
 
-export const Dashboard: React.FC = () => {
-  const { data: transactions, isLoading } = useTransactions();
+// Utility functions for calculations
+export const calculateTotalIncome = (transactions: Transaction[] = []): number => {
+  return transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+};
 
-  // Calculate summary data
-  const totalIncome = transactions?.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const totalExpenses = transactions?.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const balance = totalIncome - totalExpenses;
+export const calculateTotalExpenses = (transactions: Transaction[] = []): number => {
+  return transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+};
 
-  // Prepare chart data
+export const calculateBalance = (income: number, expenses: number): number => {
+  return income - expenses;
+};
+
+// Chart data preparation functions
+export const prepareMonthlyChartData = () => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   
   const incomeData = [2800, 3200, 3100, 3500, 0, 0, 0, 0, 0, 0, 0, 0];
   const expenseData = [1900, 2100, 1800, 2000, 0, 0, 0, 0, 0, 0, 0, 0];
   
-  const lineChartData = [
-    { name: 'Income', data: incomeData },
-    { name: 'Expenses', data: expenseData },
-  ];
+  return {
+    months,
+    lineChartData: [
+      { name: 'Income', data: incomeData },
+      { name: 'Expenses', data: expenseData },
+    ]
+  };
+};
 
-  // Category data for bar chart
+export const prepareCategoryChartData = () => {
   const categories = ['Housing', 'Food', 'Transportation', 'Utilities', 'Entertainment'];
   const categoryExpenses = [1200, 450, 200, 300, 150];
   
-  const barChartData = [
-    { name: 'Expenses', data: categoryExpenses },
-  ];
+  return {
+    categories,
+    barChartData: [
+      { name: 'Expenses', data: categoryExpenses },
+    ],
+    pieChartData: [
+      { name: 'Housing', value: 1200 },
+      { name: 'Food', value: 450 },
+      { name: 'Transportation', value: 200 },
+      { name: 'Utilities', value: 300 },
+      { name: 'Entertainment', value: 150 },
+    ]
+  };
+};
 
-  // Pie chart data
-  const pieChartData = [
-    { name: 'Housing', value: 1200 },
-    { name: 'Food', value: 450 },
-    { name: 'Transportation', value: 200 },
-    { name: 'Utilities', value: 300 },
-    { name: 'Entertainment', value: 150 },
-  ];
+export const Dashboard: React.FC = () => {
+  const { data: transactions, isLoading } = useTransactions();
+
+  // Calculate summary data
+  const totalIncome = calculateTotalIncome(transactions);
+  const totalExpenses = calculateTotalExpenses(transactions);
+  const balance = calculateBalance(totalIncome, totalExpenses);
+
+  // Prepare chart data
+  const { months, lineChartData } = prepareMonthlyChartData();
+  const { categories, barChartData, pieChartData } = prepareCategoryChartData();
 
   return (
     <div className="space-y-6">
