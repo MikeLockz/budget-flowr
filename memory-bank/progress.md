@@ -9,7 +9,7 @@
 - Implementation of core features including transaction management, capital asset tracking, and sinking funds.
 - Development of dual-view accounting engine and reporting tools.
 - UI/UX design and refinement for responsive and accessible interfaces.
-- Offline-first data persistence and synchronization mechanisms.
+- Local-first data persistence and synchronization mechanisms.
 - Testing, optimization, and launch preparations.
 
 ## Current Status
@@ -22,5 +22,5 @@
 ## Evolution of Project Decisions
 - Adopted offline-first architecture with IndexedDB for local data storage.
 - Chose React with TypeScript and Vite for frontend development.
-- Selected AG Grid Enterprise and Apache ECharts for data grid and visualization needs.
+- Selected AG Grid Community and Apache ECharts for data grid and visualization needs.
 - Emphasized modular design and dual-view accounting as core differentiators.
