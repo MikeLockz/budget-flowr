@@ -22,12 +22,24 @@
 - Command pattern for transaction management and undo/redo capabilities.
 - Factory pattern for creating financial entities and reports.
 - Strategy pattern for depreciation calculation methods.
+- Migration pattern for database schema evolution and data transformation.
+- Type guard pattern for ensuring type safety with union types.
 - Test-driven development pattern for new features and functionality.
+
+## Database Versioning Patterns
+- Explicit schema versioning with Dexie.js version() method.
+- Incremental schema upgrades with version-specific migration logic.
+- Dedicated migration functions for type-safe data transformations.
+- Entity validation to ensure data integrity after migrations.
+- Database utilities for initialization, version detection, and validation.
+- Error handling and user feedback during database operations.
+- Isolated test databases for testing schema upgrades and migrations.
 
 ## Testing Patterns
 - Unit tests for isolated functionality in utility functions and hooks.
 - Component tests for UI rendering and interactions.
 - Integration tests for data flow and business logic.
+- Database migration tests to verify schema upgrades and data transformations.
 - Mock repositories and test utilities for consistent testing environment.
 - Test coverage tracking to ensure comprehensive test coverage.
 

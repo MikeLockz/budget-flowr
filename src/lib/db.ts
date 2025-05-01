@@ -10,6 +10,7 @@ export interface Transaction {
   amount: number;
   type: 'income' | 'expense';
   status: 'completed' | 'pending' | 'upcoming';
+  accountId?: string; // New field for version 2
 }
 
 export interface Category {
@@ -57,6 +58,8 @@ export class BudgetFlowrDB extends Dexie {
 
   constructor() {
     super('BudgetFlowrDB');
+    
+    // Version 1: Initial schema
     this.version(1).stores({
       transactions: 'id, date, categoryId, type, status',
       categories: 'id, name, parentId',
@@ -64,6 +67,23 @@ export class BudgetFlowrDB extends Dexie {
       assets: 'id, name, purchaseDate, categoryId',
       sinkingFunds: 'id, name, targetDate, associatedAssetId',
     });
+    
+    // Version 2: Add accountId to transactions
+    this.version(2).stores({
+      transactions: 'id, date, categoryId, type, status, accountId', // Added accountId index
+      // Other tables remain unchanged
+    }).upgrade(tx => {
+      // Migration logic for existing data
+      return tx.table('transactions').toCollection().modify(transaction => {
+        // Set default accountId for existing transactions
+        if (!transaction.accountId) {
+          transaction.accountId = 'default';
+        }
+      });
+    });
+    
+    // Future versions would follow the same pattern
+    // this.version(3)...
   }
 }
 
