@@ -1,3 +1,2 @@
 import '@testing-library/react';
-
-// Global test setup goes here
+import 'fake-indexeddb/auto';
