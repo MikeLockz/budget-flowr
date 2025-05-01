@@ -36,3 +36,46 @@ vi.mock('echarts', () => {
     getInstanceByDom: vi.fn(() => mockChart),
   };
 });
+
+import React from 'react';
+
+// Mock AG Grid for tests
+vi.mock('ag-grid-react', () => {
+  return {
+    AgGridReact: vi.fn(({ onGridReady, rowData, columnDefs }) => {
+      // Call onGridReady with mock params if provided
+      if (onGridReady) {
+        const mockApi = {
+          sizeColumnsToFit: vi.fn(),
+        };
+        onGridReady({ api: mockApi });
+      }
+      
+      // Return a simple div that shows we're rendering the grid
+      return React.createElement('div', { 'data-testid': 'ag-grid-react' }, [
+        React.createElement('div', { 'data-testid': 'row-data-length', key: 'row-data' }, rowData?.length || 0),
+        React.createElement('div', { 'data-testid': 'column-defs-length', key: 'column-defs' }, columnDefs?.length || 0)
+      ]);
+    })
+  };
+});
+
+vi.mock('ag-grid-community', async () => {
+  return {
+    ModuleRegistry: {
+      registerModules: vi.fn(),
+    },
+    ClientSideRowModelModule: 'ClientSideRowModelModule',
+    ValidationModule: 'ValidationModule',
+    PaginationModule: 'PaginationModule',
+    RowSelectionModule: 'RowSelectionModule',
+    TextFilterModule: 'TextFilterModule',
+    NumberFilterModule: 'NumberFilterModule',
+    DateFilterModule: 'DateFilterModule',
+    CustomFilterModule: 'CustomFilterModule',
+    ColumnAutoSizeModule: 'ColumnAutoSizeModule',
+  };
+});
+
+// Mock AG Grid styles
+vi.mock('ag-grid-community/styles/ag-theme-alpine.css', () => ({}));
