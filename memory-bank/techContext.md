@@ -8,7 +8,7 @@
 - **Data Grid**: AG Grid Community for advanced data grid features and large dataset handling.
 - **Data Visualization**: Apache ECharts and React Calendar Timeline for charts and timeline visualizations.
 - **Local Storage**: IndexedDB accessed via Dexie.js for offline-first data persistence.
-- **Testing**: Vitest for unit and integration testing.
+- **Testing**: Vitest for comprehensive unit and integration testing with full coverage of application components.
 - **Linting and Formatting**: ESLint and Prettier for code quality and consistency.
 
 ## Development Setup
@@ -16,6 +16,13 @@
 - TypeScript configuration for strict typing and code safety.
 - Continuous integration pipelines for automated testing and deployment.
 - Local development server powered by Vite.
+
+## Testing Strategy
+- Unit tests for all utility functions and hooks.
+- Component tests for UI elements and their interactions.
+- Integration tests for data flow and business logic.
+- Test utilities for mocking database and rendering components.
+- Test coverage required for all new features and functionality.
 
 ## Technical Constraints
 - Offline-first design requiring robust local data storage and synchronization.

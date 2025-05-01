@@ -22,6 +22,14 @@
 - Command pattern for transaction management and undo/redo capabilities.
 - Factory pattern for creating financial entities and reports.
 - Strategy pattern for depreciation calculation methods.
+- Test-driven development pattern for new features and functionality.
+
+## Testing Patterns
+- Unit tests for isolated functionality in utility functions and hooks.
+- Component tests for UI rendering and interactions.
+- Integration tests for data flow and business logic.
+- Mock repositories and test utilities for consistent testing environment.
+- Test coverage tracking to ensure comprehensive test coverage.
 
 ## Component Relationships
 - Core data entities: User, Account, Transaction, Category, CapitalAsset, SinkingFund.
