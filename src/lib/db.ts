@@ -64,18 +64,15 @@ export class BudgetFlowrDB extends Dexie {
       assets: 'id, name, purchaseDate, categoryId',
       sinkingFunds: 'id, name, targetDate, associatedAssetId',
     });
-
-    this.version(2).stores({
-      transactions: '++id, date, categoryId, type, status',
-      categories: '++id, name, parentId',
-      accounts: '++id, name, type',
-      assets: '++id, name, purchaseDate, categoryId',
-      sinkingFunds: '++id, name, targetDate, associatedAssetId',
-    }).upgrade(async () => {
-      // Example migration logic: no changes needed if IDs are compatible
-      // Add migration code here if needed in the future
-    });
   }
+}
+
+export function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0,
+          v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 export const db = new BudgetFlowrDB();
