@@ -21,7 +21,6 @@
     "@radix-ui/react-toast": "^1.2.11",
     "@tanstack/react-query": "^5.74.11",
     "ag-grid-community": "^33.2.4",
-    "ag-grid-enterprise": "^33.2.4",
     "ag-grid-react": "^33.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

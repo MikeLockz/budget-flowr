@@ -6,8 +6,7 @@ import { ColDef, GridReadyEvent, GridApi } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-// Import AG Grid Enterprise features
-import 'ag-grid-enterprise';
+
 
 interface AgGridBaseProps<TData = Record<string, unknown>> {
   rowData: TData[];
@@ -18,8 +17,6 @@ interface AgGridBaseProps<TData = Record<string, unknown>> {
   pagination?: boolean;
   paginationPageSize?: number;
   rowSelection?: 'single' | 'multiple';
-  enableRangeSelection?: boolean;
-  enableCharts?: boolean;
   onGridReady?: (params: GridReadyEvent) => void;
   onSelectionChanged?: (event: unknown) => void;
 }
@@ -42,8 +39,6 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
   pagination = false,
   paginationPageSize = 10,
   rowSelection,
-  enableRangeSelection = false,
-  enableCharts = false,
   onGridReady,
   onSelectionChanged,
 }) => {
@@ -90,8 +85,6 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
         pagination={pagination}
         paginationPageSize={paginationPageSize}
         rowSelection={rowSelection}
-        enableRangeSelection={enableRangeSelection}
-        enableCharts={enableCharts}
         onGridReady={handleGridReady}
         onSelectionChanged={onSelectionChanged}
       />
@@ -161,8 +154,6 @@ export const ExampleDataGrid: React.FC = () => {
       pagination={true}
       paginationPageSize={5}
       rowSelection="multiple"
-      enableRangeSelection={true}
-      enableCharts={true}
     />
   );
 };
