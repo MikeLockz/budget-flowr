@@ -27,13 +27,18 @@ export const EChartsBase: React.FC<EChartsProps> = ({
   useEffect(() => {
     // Initialize chart
     let chart: ECharts | undefined;
+
+    const isTest = process.env.NODE_ENV === 'test';
+    const optionWithAnimation = isTest
+      ? { ...option, animation: false }
+      : option;
     
     if (chartRef.current) {
       chart = getInstanceByDom(chartRef.current) || 
               init(chartRef.current, theme);
       
-      // Apply options
-      chart.setOption(option, true);
+      // Apply options with animation disabled in test
+      chart.setOption(optionWithAnimation, true);
       
       // Handle loading state
       if (loading) {
@@ -60,7 +65,14 @@ export const EChartsBase: React.FC<EChartsProps> = ({
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
-      chart?.dispose();
+      if (chart) {
+        try {
+          chart.clear();
+          chart.dispose();
+        } catch {
+          // Ignore errors during dispose in test environment
+        }
+      }
     };
   }, [option, theme, loading, onChartReady]);
   

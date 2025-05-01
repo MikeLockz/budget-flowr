@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { LineChart, BarChart, PieChart } from '@/components/charts/echarts-base';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { LineChart, BarChart, PieChart } from '../components/charts/echarts-base';
 import { ExampleDataGrid } from '@/components/data-grid/ag-grid-base';
 import { useTransactions } from '@/hooks/use-transactions';
 import { formatCurrency } from '@/lib/utils';
