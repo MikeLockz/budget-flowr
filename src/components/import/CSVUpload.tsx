@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { importCSVFile } from '@/lib/import/import-service';
+import { queryClient } from '@/lib/query-client';
 
 export const CSVUpload: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -23,6 +24,8 @@ export const CSVUpload: React.FC = () => {
       const insertedIds = await importCSVFile(file);
       setStatus(`Successfully imported ${insertedIds.length} transactions.`);
       setFile(null);
+      // Invalidate the transactions query to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     } catch {
       setStatus('Failed to import CSV file. Please check the file and try again.');
     }
