@@ -30,7 +30,7 @@ root.render(
 initializeDatabase()
   .then(() => {
     console.log('Database initialized successfully')
-    renderApp(App, rootElement)
+    renderApp(App, rootElement, root)
   })
   .catch((error) => {
     console.error('Failed to initialize database:', error)

@@ -62,6 +62,6 @@ describe('main.tsx', () => {
     expect(initializeDatabase).toHaveBeenCalled();
     
     // Verify renderApp was called after database initialization
-    expect(renderApp).toHaveBeenCalledWith('MockedApp', rootElement);
+    expect(renderApp).toHaveBeenCalledWith('MockedApp', rootElement, expect.anything());
   });
 });
