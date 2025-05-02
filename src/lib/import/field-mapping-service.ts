@@ -82,12 +82,7 @@ export async function saveMapping(mapping: FieldMapping): Promise<string> {
     mapping.id = generateUUID();
   }
 
-  if (!db.tables.some(t => t.name === 'fieldMappings')) {
-    await db.version(db.verno + 1).stores({
-      fieldMappings: 'id, name, sourceIdentifier'
-    }).upgrade(() => {});
-  }
-
+  // Removed dynamic table creation; assume fieldMappings table exists in DB schema
   await db.table('fieldMappings').put(mapping);
   return mapping.id;
 }

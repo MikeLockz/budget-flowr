@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie';
+import { FieldMapping } from './import/field-mapping-types';
 
 // Define interfaces for core entities
 
@@ -55,6 +56,7 @@ export class BudgetFlowrDB extends Dexie {
   accounts!: Table<Account, string>;
   assets!: Table<Asset, string>;
   sinkingFunds!: Table<SinkingFund, string>;
+  fieldMappings!: Table<FieldMapping, string>; // Use FieldMapping type instead of any
 
   constructor() {
     super('BudgetFlowrDB');
@@ -82,8 +84,10 @@ export class BudgetFlowrDB extends Dexie {
       });
     });
     
-    // Future versions would follow the same pattern
-    // this.version(3)...
+    // Version 3: Add fieldMappings table
+    this.version(3).stores({
+      fieldMappings: 'id, name, sourceIdentifier'
+    });
   }
 }
 

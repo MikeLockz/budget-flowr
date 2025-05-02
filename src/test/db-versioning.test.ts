@@ -38,14 +38,21 @@ describe('Database Versioning', () => {
   });
 
   it('should initialize with the correct version', async () => {
-    // The current version should be 2 based on our schema definition
-    expect(testDB.verno).toBe(2);
+    // The current version should be 3 based on our schema definition
+    expect(testDB.verno).toBe(3);
   });
 
   it('should have the correct schema for version 2', async () => {
     // Check if the transactions table has the accountId index
     const transactionTableSchema = testDB.tables.find(table => table.name === 'transactions')?.schema;
     expect(transactionTableSchema?.indexes.some(index => index.name === 'accountId')).toBe(true);
+  });
+
+  it('should have the correct schema for version 3', async () => {
+    // Check if the fieldMappings table exists
+    const fieldMappingsTable = testDB.tables.find(table => table.name === 'fieldMappings');
+    expect(fieldMappingsTable).toBeDefined();
+    expect(fieldMappingsTable?.schema.primKey.name).toBe('id');
   });
 
   it('should migrate transaction data correctly when upgrading from v1 to v2', async () => {
