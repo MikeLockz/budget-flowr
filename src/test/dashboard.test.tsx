@@ -18,9 +18,8 @@ vi.mock('../components/charts/echarts-base', () => ({
   PieChart: () => <div data-testid="pie-chart">Pie Chart</div>,
 }));
 
-// Mock the data grid component
 vi.mock('../components/data-grid/ag-grid-base', () => ({
-  ExampleDataGrid: () => <div data-testid="data-grid">Data Grid</div>,
+  AgGridBase: () => <div data-testid="data-grid">Data Grid</div>,
 }));
 
 describe('Dashboard component', () => {
