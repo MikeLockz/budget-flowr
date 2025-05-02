@@ -1,4 +1,3 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
 import { useTransactions, useAddTransaction, useUpdateTransaction, useDeleteTransaction } from '../hooks/use-transactions';

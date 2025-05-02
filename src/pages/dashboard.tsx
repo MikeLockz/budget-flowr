@@ -6,6 +6,7 @@ import { ExampleDataGrid } from '@/components/data-grid/ag-grid-base';
 import { useTransactions } from '@/hooks/use-transactions';
 import { formatCurrency } from '@/lib/utils';
 import { Transaction } from '@/lib/db';
+import { CSVUpload } from '@/components/import/CSVUpload';
 
 // Utility functions for calculations
 export const calculateTotalIncome = (transactions: Transaction[] = []): number => {
@@ -71,7 +72,10 @@ export const Dashboard: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <Button>Add Transaction</Button>
+        <div className="flex space-x-2">
+          <Button>Add Transaction</Button>
+          <CSVUpload />
+        </div>
       </div>
 
       {/* Summary Cards */}
