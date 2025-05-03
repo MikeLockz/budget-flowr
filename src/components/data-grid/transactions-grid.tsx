@@ -19,8 +19,11 @@ export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions
   }, []);
 
   const categoryIdToName = (categoryId: string) => {
+    if (!categoryId || categoryId === 'uncategorized') {
+      return 'Uncategorized';
+    }
     const category = categories.find(c => c.id === categoryId);
-    return category ? category.name : 'Uncategorized';
+    return category ? category.name : categoryId;
   };
 
   const columnDefs = [
