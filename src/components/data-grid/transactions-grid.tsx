@@ -76,7 +76,6 @@ export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions
       paginationPageSize={100}
       rowSelection={{ mode: 'multiRow' }}
       domLayout="autoHeight"
-      autoHeight={true}
     />
   );
 };
