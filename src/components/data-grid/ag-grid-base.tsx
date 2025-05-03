@@ -30,6 +30,8 @@ interface AgGridBaseProps<TData = Record<string, unknown>> {
   rowSelection?: { mode: 'singleRow' | 'multiRow' } | undefined;
   onGridReady?: (params: GridReadyEvent) => void;
   onSelectionChanged?: (event: unknown) => void;
+  domLayout?: 'normal' | 'autoHeight' | 'print';
+  autoHeight?: boolean;
 }
 
 /**
@@ -52,6 +54,8 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
   rowSelection,
   onGridReady,
   onSelectionChanged,
+  domLayout,
+  autoHeight,
 }) => {
   const gridRef = useRef<AgGridReact>(null);
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
@@ -86,7 +90,7 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
   return (
     <div 
       className={`ag-theme-alpine ${className || ''}`} 
-      style={{ width: '100%', height: '500px', ...style }}
+      style={{ width: '100%', height: autoHeight ? 'auto' : '500px', ...style }}
     >
       <AgGridReact
         ref={gridRef}
@@ -95,10 +99,11 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
         defaultColDef={defaultColDef}
         pagination={pagination}
       paginationPageSize={paginationPageSize}
-      paginationPageSizeSelector={[5, 10, 20]}
+      paginationPageSizeSelector={[100, 500, 1000]}
       rowSelection={rowSelection}
       onGridReady={handleGridReady}
     onSelectionChanged={onSelectionChanged}
+    domLayout={domLayout}
     modules={[
       ClientSideRowModelModule,
       ValidationModule,
