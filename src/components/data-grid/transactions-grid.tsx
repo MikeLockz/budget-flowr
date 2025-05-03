@@ -1,39 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { AgGridBase } from './ag-grid-base';
-import type { Transaction, Category } from '@/lib/db';
-import { categoryRepository } from '@/lib/repositories';
 
 interface TransactionsGridProps {
-  transactions: Transaction[];
+  transactions: Array<{
+    id: string;
+    description: string;
+    categoryName: string;
+    amount: number;
+    date: string;
+    type: string;
+    status: string;
+  }>;
 }
 
 export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions }) => {
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  useEffect(() => {
-    async function fetchCategories() {
-      const cats = await categoryRepository.getAll();
-      setCategories(cats);
-    }
-    fetchCategories();
-  }, []);
-
-  const categoryIdToName = (categoryId: string) => {
-    if (!categoryId || categoryId === 'uncategorized') {
-      return 'Uncategorized';
-    }
-    const category = categories.find(c => c.id === categoryId);
-    return category ? category.name : categoryId;
-  };
-
   const columnDefs = [
     { field: 'id', headerName: 'ID', width: 70 },
     { field: 'description', headerName: 'Description', filter: 'text' },
     {
-      field: 'categoryId',
+      field: 'categoryName',
       headerName: 'Category',
       filter: 'text',
-      valueGetter: (params: import('ag-grid-community').ValueGetterParams) => categoryIdToName(params.data?.categoryId ?? ''),
     },
     {
       field: 'amount',

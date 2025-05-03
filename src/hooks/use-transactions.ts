@@ -1,9 +1,14 @@
 // Replace mock API functions with Dexie.js database operations
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { db, Transaction as TransactionType } from '@/lib/db';
+import { db, Transaction as TransactionType, Category } from '@/lib/db';
+import { useMemo } from 'react';
 
 const fetchTransactions = async (): Promise<TransactionType[]> => {
   return db.transactions.toArray();
+};
+
+const fetchCategories = async (): Promise<Category[]> => {
+  return db.categories.toArray();
 };
 
 const addTransaction = async (transaction: Omit<TransactionType, 'id'>): Promise<TransactionType> => {
@@ -30,6 +35,68 @@ export const useTransactions = () => {
     queryKey: ['transactions'],
     queryFn: fetchTransactions,
   });
+};
+
+export const useCategories = () => {
+  return useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  });
+};
+
+export const useTransactionData = () => {
+  const { data: transactions = [], isLoading: transactionsLoading } = useTransactions();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+
+  const transactionsWithCategoryName = useMemo(() => {
+    const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+    return transactions.map(t => ({
+      ...t,
+      categoryName: categoryMap.get(t.categoryId) || 'Uncategorized',
+    }));
+  }, [transactions, categories]);
+
+  const prepareCategoryChartData = () => {
+    const expenseMap = new Map<string, number>();
+    categories.forEach(c => {
+      expenseMap.set(c.name, 0);
+    });
+    expenseMap.set('Uncategorized', 0);
+
+    transactionsWithCategoryName.forEach(t => {
+      if (t.type === 'expense') {
+        const categoryName = expenseMap.has(t.categoryName) ? t.categoryName : 'Uncategorized';
+        expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + t.amount);
+      }
+    });
+
+    const categoriesList = Array.from(expenseMap.keys());
+    const categoryExpenses = Array.from(expenseMap.values());
+
+    const barChartData = [
+      { name: 'Expenses', data: categoryExpenses },
+    ];
+
+    const pieChartData = categoriesList.map((name, index) => ({
+      name,
+      value: categoryExpenses[index],
+    }));
+
+    return {
+      categories: categoriesList,
+      barChartData,
+      pieChartData,
+    };
+  };
+
+  const categoryChartData = useMemo(() => prepareCategoryChartData(), [transactionsWithCategoryName, categories]);
+
+  return {
+    transactions: transactionsWithCategoryName,
+    categories,
+    categoryChartData,
+    isLoading: transactionsLoading || categoriesLoading,
+  };
 };
 
 export const useAddTransaction = () => {

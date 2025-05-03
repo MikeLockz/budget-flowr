@@ -190,9 +190,7 @@ export const PieChart: React.FC<{
       formatter: '{a} <br/>{b}: {c} ({d}%)',
     },
     legend: {
-      orient: 'vertical',
-      left: 10,
-      data: data.map(item => item.name),
+      show: false,
     },
     series: [
       {

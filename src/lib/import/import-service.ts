@@ -1,5 +1,5 @@
 import { ParsedCSVData } from './csv-parser';
-import { transactionRepository } from '@/lib/repositories';
+import { transactionRepository, categoryRepository } from '@/lib/repositories';
 import { FieldMapping, PreviewData } from './field-mapping-types';
 import { applyMapping, generatePreview } from './field-mapping-service';
 
@@ -92,6 +92,40 @@ export async function importCSVWithMapping(
     const parsedData = await parseCSVForMapping(file);
     const transactions = applyMapping(parsedData.allData, mapping);
 
+    // Extract unique category IDs from transactions
+    const categoryIds = new Set<string>();
+    transactions.forEach(t => {
+      if (t.categoryId && t.categoryId !== 'uncategorized') {
+        categoryIds.add(t.categoryId);
+      }
+    });
+
+    // Fetch existing categories
+    const existingCategories = await categoryRepository.getAll();
+    const existingCategoryIds = new Set(existingCategories.map(c => c.id));
+
+    // Create new categories for IDs that don't exist yet
+    const categoriesToCreate = Array.from(categoryIds)
+      .filter(id => !existingCategoryIds.has(id))
+      .map(id => ({
+        id,
+        name: id // Use the ID as the name
+      }));
+
+    // Add new categories to the database
+    for (const category of categoriesToCreate) {
+      await categoryRepository.add(category);
+    }
+
+    // Ensure uncategorized category exists
+    if (!existingCategoryIds.has('uncategorized')) {
+      await categoryRepository.add({
+        id: 'uncategorized',
+        name: 'Uncategorized'
+      });
+    }
+
+    // Now insert the transactions
     const insertedIds: string[] = [];
     for (const transaction of transactions) {
       const id = await transactionRepository.add(transaction);

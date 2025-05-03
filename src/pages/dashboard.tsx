@@ -3,39 +3,32 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Button } from '../components/ui/button';
 import { LineChart, BarChart, PieChart } from '../components/charts/echarts-base';
 import { TransactionsGrid } from '@/components/data-grid/transactions-grid';
-import { useTransactions } from '@/hooks/use-transactions';
+import { useTransactionData } from '@/hooks/use-transactions';
 import { formatCurrency } from '@/lib/utils';
-import { Transaction } from '@/lib/db';
 import { CSVUpload } from '@/components/import/CSVUpload';
 
-// Utility functions for calculations
-export const calculateTotalIncome = (transactions: Transaction[] = []): number => {
+export const calculateTotalIncome = (transactions: Array<{ type: string; amount: number }> = []) => {
   return transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
 };
 
-export const calculateTotalExpenses = (transactions: Transaction[] = []): number => {
+export const calculateTotalExpenses = (transactions: Array<{ type: string; amount: number }> = []) => {
   return transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
 };
 
-export const calculateBalance = (income: number, expenses: number): number => {
+export const calculateBalance = (income: number, expenses: number) => {
   return income - expenses;
 };
 
-// Chart data preparation functions
-import { Category } from '@/lib/db';
-import { categoryRepository } from '@/lib/repositories';
-
-export const prepareMonthlyChartData = (transactions: Transaction[] = []) => {
+export const prepareMonthlyChartData = (transactions: Array<{ date: string; type: string; amount: number }> = []) => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   if (transactions.length === 0) {
-    // Return sample data for testing/demo when no transactions provided
     return {
       months,
       lineChartData: [
         { name: 'Income', data: [2800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
         { name: 'Expenses', data: [0, 2100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-      ]
+      ],
     };
   }
 
@@ -57,74 +50,16 @@ export const prepareMonthlyChartData = (transactions: Transaction[] = []) => {
     lineChartData: [
       { name: 'Income', data: incomeData },
       { name: 'Expenses', data: expenseData },
-    ]
+    ],
   };
 };
 
-export const prepareCategoryChartData = async (transactions: Transaction[] = []) => {
-  // Fetch categories from repository
-  const categories: Category[] = await categoryRepository.getAll();
-  const categoryMap = new Map(categories.map(c => [c.id, c.name]));
+export const Dashboard = () => {
+  const { transactions, categoryChartData, isLoading } = useTransactionData();
 
-  // Initialize expense map with all categories set to 0
-  const expenseMap = new Map<string, number>();
-  categories.forEach(c => {
-    expenseMap.set(c.name, 0);
-  });
-
-  // Aggregate expenses by category
-  transactions.forEach(t => {
-    if (t.type === 'expense') {
-      const categoryName = categoryMap.get(t.categoryId) || 'Uncategorized';
-      expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + t.amount);
-    }
-  });
-
-  const categoriesList = Array.from(expenseMap.keys());
-  const categoryExpenses = Array.from(expenseMap.values());
-
-  const barChartData = [
-    { name: 'Expenses', data: categoryExpenses },
-  ];
-
-  const pieChartData = categoriesList.map((name, index) => ({
-    name,
-    value: categoryExpenses[index],
-  }));
-
-  return {
-    categories: categoriesList,
-    barChartData,
-    pieChartData,
-  };
-};
-
-export const Dashboard: React.FC = () => {
-  const { data: transactions = [], isLoading } = useTransactions();
-
-  // Calculate summary data
   const totalIncome = calculateTotalIncome(transactions);
   const totalExpenses = calculateTotalExpenses(transactions);
   const balance = calculateBalance(totalIncome, totalExpenses);
-
-  // Prepare chart data
-  const [categoryChartData, setCategoryChartData] = React.useState<{
-    categories: string[];
-    barChartData: { name: string; data: number[] }[];
-    pieChartData: { name: string; value: number }[];
-  }>({
-    categories: [],
-    barChartData: [],
-    pieChartData: [],
-  });
-
-  React.useEffect(() => {
-    async function fetchCategoryData() {
-      const data = await prepareCategoryChartData(transactions);
-      setCategoryChartData(data);
-    }
-    fetchCategoryData();
-  }, [transactions]);
 
   const { months, lineChartData } = prepareMonthlyChartData(transactions);
   const { categories, barChartData, pieChartData } = categoryChartData;
