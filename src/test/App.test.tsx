@@ -16,7 +16,7 @@ vi.mock('../components/layout/app-layout', () => ({
 }));
 
 vi.mock('../pages/dashboard', () => ({
-  default: () => <div data-testid="dashboard">Dashboard</div>,
+  Dashboard: () => <div data-testid="dashboard">Dashboard</div>,
 }));
 
 describe('App component', () => {
@@ -43,7 +43,7 @@ describe('App component', () => {
   });
 
   it('applies light theme class to document root', () => {
-    (useAppStore as Mock).mockReturnValue({ theme: 'light' });
+    (useAppStore as unknown as Mock).mockReturnValue({ theme: 'light' });
 
     render(<App />);
 

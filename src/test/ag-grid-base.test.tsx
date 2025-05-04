@@ -14,6 +14,7 @@ vi.mock('ag-grid-community', () => ({
     registerModules: vi.fn()
   },
   ClientSideRowModelModule: {},
+  ClientSideRowModelApiModule: {},
   ValidationModule: {},
   PaginationModule: {},
   RowSelectionModule: {},

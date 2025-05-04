@@ -4,12 +4,14 @@
 - Implementing transaction import, categorization, and dual-view accounting features.
 - Enhancing UI components for transaction management, including CSV upload, field mapping, and transaction preview.
 - Developing capital asset tracking and depreciation functionality.
-- Building and refining the dashboard for financial overview and insights.
+- Building and refining the dashboard for financial overview and insights, including charts for income vs expenses, category breakdown, and spending distribution.
 - Ensuring comprehensive test coverage for all application components.
 - Updating memory bank documentation to reflect current state and decisions.
+- Managing database schema evolution, currently at version 3 with the addition of the fieldMappings table.
 
 ## Recent Changes
-- Implemented versioned schema upgrades with migration logic in Dexie.js.
+- Implemented versioned schema upgrades with migration logic in Dexie.js, now at version 3.
+- Added fieldMappings table to support import field mapping functionality.
 - Created database utilities for initialization, version detection, and validation.
 - Added migration functions for handling data transformations between versions.
 - Implemented comprehensive tests for database versioning and migrations.
@@ -18,7 +20,8 @@
 - Developed CSV parsing and field mapping services for transaction import.
 - Created UI components for CSV upload, field mapping, and transaction preview.
 - Implemented import service to process and save imported transactions.
-- Began development of dashboard components for financial reporting.
+- Began development of dashboard components for financial reporting, including summary cards and charts.
+- Integrated transaction hooks for data fetching and manipulation.
 
 ## Next Steps
 - Complete transaction import and categorization features.

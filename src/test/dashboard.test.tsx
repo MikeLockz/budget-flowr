@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Dashboard } from '../pages/dashboard';
 import { useTransactionData } from '../hooks/use-transactions';
+import { FilterProvider } from '../contexts/FilterContext';
 import { formatCurrency } from '../lib/utils';
-import { Transaction } from '../lib/db';
 
 // Mock the useTransactions and useTransactionData hooks
 vi.mock('../hooks/use-transactions', () => ({
@@ -29,7 +29,7 @@ vi.mock('../components/data-grid/ag-grid-base', () => ({
 
 describe('Dashboard component', () => {
   // Sample transaction data for testing
-  const mockTransactions: Transaction[] = [
+  const mockTransactions = [
     {
       id: 'income-1',
       date: '2025-05-01',
@@ -81,6 +81,19 @@ describe('Dashboard component', () => {
     vi.clearAllMocks();
   });
 
+  const renderWithProvider = (ui: React.ReactElement) => {
+    const utils = render(<FilterProvider>{ui}</FilterProvider>);
+    return {
+      ...utils,
+      rerender: (newUi: React.ReactElement) => utils.rerender(<FilterProvider>{newUi}</FilterProvider>),
+    };
+  };
+
+  // Wrap all tests with FilterProvider to avoid useFilterContext errors
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders the dashboard with title and add transaction button', () => {
     // Mock the useTransactionData hook to return loading state
     (useTransactionData as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -89,7 +102,7 @@ describe('Dashboard component', () => {
       isLoading: true,
     });
 
-    render(<Dashboard />);
+    renderWithProvider(<Dashboard />);
 
     // Check if the dashboard title is rendered
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
@@ -106,7 +119,7 @@ describe('Dashboard component', () => {
       isLoading: true,
     });
 
-    render(<Dashboard />);
+    renderWithProvider(<Dashboard />);
 
     // Check if loading message is displayed
     expect(screen.getByText('Loading transactions...')).toBeInTheDocument();
@@ -124,7 +137,7 @@ describe('Dashboard component', () => {
       isLoading: false,
     });
 
-    render(<Dashboard />);
+    renderWithProvider(<Dashboard />);
 
     // Calculate expected values
     const totalIncome = 3500; // 3000 + 500
@@ -145,7 +158,7 @@ describe('Dashboard component', () => {
       isLoading: false,
     });
 
-    render(<Dashboard />);
+    renderWithProvider(<Dashboard />);
 
     // Check if all chart components are rendered
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
@@ -161,7 +174,7 @@ describe('Dashboard component', () => {
       isLoading: false,
     });
 
-    render(<Dashboard />);
+    renderWithProvider(<Dashboard />);
 
     // Check if the data grid is rendered
     expect(screen.getByTestId('data-grid')).toBeInTheDocument();
@@ -195,7 +208,7 @@ describe('Dashboard component', () => {
       isLoading: false,
     });
 
-    const { rerender } = render(<Dashboard />);
+    const { rerender } = renderWithProvider(<Dashboard />);
 
     // Get the balance element
     const positiveBalance = screen.getByText(formatCurrency(1800));
@@ -242,7 +255,7 @@ describe('Dashboard component', () => {
       isLoading: false,
     });
 
-    render(<Dashboard />);
+    renderWithProvider(<Dashboard />);
 
     // Summary cards should display zero values
     const zeroAmounts = screen.getAllByText(formatCurrency(0));

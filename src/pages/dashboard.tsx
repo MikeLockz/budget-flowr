@@ -6,6 +6,7 @@ import { TransactionsGrid } from '@/components/data-grid/transactions-grid';
 import { useTransactionData } from '@/hooks/use-transactions';
 import { formatCurrency } from '@/lib/utils';
 import { CSVUpload } from '@/components/import/CSVUpload';
+import { useFilterContext } from '@/contexts/FilterContext';
 
 export const calculateTotalIncome = (transactions: Array<{ type: string; amount: number }> = []) => {
   return transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -54,21 +55,80 @@ export const prepareMonthlyChartData = (transactions: Array<{ date: string; type
   };
 };
 
+export const prepareCategoryChartData = (transactions: Array<{ categoryName?: string; amount: number }> = [], categories: string[] = []) => {
+  const expenseMap = new Map<string, number>();
+  categories.forEach(c => {
+    expenseMap.set(c, 0);
+  });
+  expenseMap.set('Uncategorized', 0);
+
+  transactions.forEach(t => {
+    if (t.amount && t.categoryName) {
+      const categoryName = expenseMap.has(t.categoryName) ? t.categoryName : 'Uncategorized';
+      expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + t.amount);
+    }
+  });
+
+  const categoriesList = Array.from(expenseMap.keys());
+  const categoryExpenses = Array.from(expenseMap.values());
+
+  const barChartData = [
+    { name: 'Expenses', data: categoryExpenses },
+  ];
+
+  const pieChartData = categoriesList.map((name, index) => ({
+    name,
+    value: categoryExpenses[index],
+  }));
+
+  return {
+    categories: categoriesList,
+    barChartData,
+    pieChartData,
+  };
+};
+
 export const Dashboard = () => {
   const { transactions, categoryChartData, isLoading } = useTransactionData();
+  const { visibleTransactionIds, resetFilters } = useFilterContext();
 
-  const totalIncome = calculateTotalIncome(transactions);
-  const totalExpenses = calculateTotalExpenses(transactions);
+  // Ensure transactions is always an array
+  const transactionsArray = transactions || [];
+
+  // Use filtered transactions if available, otherwise use all transactions
+  const displayTransactions = visibleTransactionIds.length > 0
+    ? transactionsArray.filter(t => visibleTransactionIds.includes(t.id))
+    : transactionsArray;
+
+  console.log('DASHBOARD: visibleTransactionIds:', visibleTransactionIds);
+  console.log('DASHBOARD: visibleTransactionIds (full):', JSON.stringify(visibleTransactionIds));
+  console.log('DASHBOARD: Total transactions:', transactionsArray.length);
+  console.log('DASHBOARD: Filtered transactions:', displayTransactions.length);
+
+  // Calculate totals based on filtered transactions
+  const totalIncome = calculateTotalIncome(displayTransactions);
+  const totalExpenses = calculateTotalExpenses(displayTransactions);
   const balance = calculateBalance(totalIncome, totalExpenses);
 
-  const { months, lineChartData } = prepareMonthlyChartData(transactions);
-  const { categories, barChartData, pieChartData } = categoryChartData;
+  // Prepare chart data based on filtered transactions
+  const { months, lineChartData } = prepareMonthlyChartData(displayTransactions);
+
+  // Prepare category chart data based on filtered transactions
+  // Map transactions to include categoryName and amount for chart data preparation
+  const transactionsWithCategoryNameAndAmount = displayTransactions.map((t: { categoryName?: string; amount?: number }) => ({
+    ...t,
+    categoryName: t.categoryName || 'Uncategorized',
+    amount: t.amount || 0,
+  }));
+
+  const filteredCategoryChartData = prepareCategoryChartData(transactionsWithCategoryNameAndAmount, categoryChartData.categories);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <div className="flex space-x-2">
+          <Button onClick={resetFilters}>Reset Filters</Button>
           <Button>Add Transaction</Button>
           <CSVUpload />
         </div>
@@ -124,7 +184,7 @@ export const Dashboard = () => {
             <CardDescription>Current month breakdown</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            <BarChart data={barChartData} xAxisData={categories} />
+            <BarChart data={filteredCategoryChartData.barChartData} xAxisData={filteredCategoryChartData.categories} />
           </CardContent>
         </Card>
         <Card>
@@ -133,7 +193,7 @@ export const Dashboard = () => {
             <CardDescription>Current month breakdown</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            <PieChart data={pieChartData} />
+            <PieChart data={filteredCategoryChartData.pieChartData} />
           </CardContent>
         </Card>
       </div>
@@ -148,12 +208,10 @@ export const Dashboard = () => {
           {isLoading ? (
             <div className="flex justify-center p-4">Loading transactions...</div>
           ) : (
-            <TransactionsGrid transactions={transactions} />
+            <TransactionsGrid transactions={displayTransactions} />
           )}
         </CardContent>
       </Card>
     </div>
   );
 };
-
-export default Dashboard;

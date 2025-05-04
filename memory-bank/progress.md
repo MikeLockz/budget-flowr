@@ -4,13 +4,13 @@
 - Project documentation established including application flow, implementation plan, and technology stack.
 - Core project brief, product context, system patterns, and technical context drafted and saved.
 - Clear understanding of project phases and technical architecture.
-- Database schema versioning with migration support implemented.
+- Database schema versioning with migration support implemented up to version 3, including fieldMappings table.
 - Database utilities for initialization, version detection, and validation created.
 - Application initialization with proper database setup and error handling.
 - Comprehensive test coverage for all existing application code.
 - Transaction import functionality including CSV parsing, field mapping, preview, and import service.
 - UI components for CSV upload, field mapping, and transaction preview.
-- Initial dashboard components for financial reporting.
+- Dashboard components for financial reporting, including summary cards and charts for income vs expenses, category breakdown, and spending distribution.
 
 ## What's Left to Build
 - Completion of transaction import and categorization features.

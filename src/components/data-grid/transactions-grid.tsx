@@ -1,11 +1,13 @@
 import React from 'react';
 import { AgGridBase } from './ag-grid-base';
+import { useFilterContext } from '@/contexts/FilterContext';
 
 interface TransactionsGridProps {
   transactions: Array<{
     id: string;
     description: string;
     categoryName: string;
+    categoryId: string;
     amount: number;
     date: string;
     type: string;
@@ -14,13 +16,16 @@ interface TransactionsGridProps {
 }
 
 export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions }) => {
+  const { setVisibleTransactionIds } = useFilterContext();
+
   const columnDefs = [
     { field: 'id', headerName: 'ID', width: 70 },
-    { field: 'description', headerName: 'Description', filter: 'text' },
+    { field: 'categoryId', headerName: 'Category ID', filter: 'agTextColumnFilter', hide: true },
+    { field: 'description', headerName: 'Description', filter: 'agTextColumnFilter' },
     {
       field: 'categoryName',
       headerName: 'Category',
-      filter: 'text',
+      filter: 'agTextColumnFilter',
     },
     {
       field: 'amount',
@@ -43,7 +48,7 @@ export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions
     {
       field: 'type',
       headerName: 'Type',
-      filter: 'text',
+      filter: 'agTextColumnFilter',
       cellRenderer: (params: { value?: string }) => {
         return params.value === 'income' ? (
           <span className="text-green-600 font-semibold">Income</span>
@@ -58,6 +63,7 @@ export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions
   // Cast transactions to unknown[] to satisfy AgGridBase typing
   const rowData = transactions as unknown as Record<string, unknown>[];
 
+
   return (
     <AgGridBase
       rowData={rowData}
@@ -66,6 +72,19 @@ export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions
       paginationPageSize={100}
       rowSelection={{ mode: 'multiRow' }}
       domLayout="autoHeight"
+      onGridReady={(params) => {
+        params.api.sizeColumnsToFit();
+      }}
+      onFilterChanged={(event: { api: { forEachNodeAfterFilter: (callback: (node: { data: { id: string } }) => void) => void } }) => {
+        console.log('FILTER EVENT: onFilterChanged triggered', event);
+        const filteredIds: string[] = [];
+        event.api.forEachNodeAfterFilter((node: { data: { id: string } }) => {
+          console.log('FILTER EVENT: Processing node with id:', node.data.id);
+          filteredIds.push(node.data.id);
+        });
+        console.log('FILTER EVENT: Filtered transaction IDs collected:', filteredIds, 'Count:', filteredIds.length);
+        setVisibleTransactionIds(filteredIds);
+      }}
     />
   );
-};
+}

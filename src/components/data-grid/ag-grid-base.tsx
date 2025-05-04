@@ -1,12 +1,13 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, GridReadyEvent, GridApi, ClientSideRowModelModule, ValidationModule, ModuleRegistry, PaginationModule, RowSelectionModule, TextFilterModule, NumberFilterModule, DateFilterModule, CustomFilterModule, ColumnAutoSizeModule } from 'ag-grid-community';
+import { ColDef, GridReadyEvent, GridApi, ClientSideRowModelModule, ClientSideRowModelApiModule, ValidationModule, PaginationModule, RowSelectionModule, TextFilterModule, NumberFilterModule, DateFilterModule, CustomFilterModule, ColumnAutoSizeModule, ModuleRegistry } from 'ag-grid-community';
 
 // Import AG Grid styles
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([
   ClientSideRowModelModule,
+  ClientSideRowModelApiModule,
   ValidationModule,
   PaginationModule,
   RowSelectionModule,
@@ -31,6 +32,7 @@ interface AgGridBaseProps<TData = Record<string, unknown>> {
   onGridReady?: (params: GridReadyEvent) => void;
   onSelectionChanged?: (event: unknown) => void;
   domLayout?: 'normal' | 'autoHeight' | 'print';
+  onFilterChanged?: (event: import("ag-grid-community").FilterChangedEvent) => void;
 }
 
 /**
@@ -54,6 +56,7 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
   onGridReady,
   onSelectionChanged,
   domLayout,
+  onFilterChanged,
 }) => {
   const gridRef = useRef<AgGridReact>(null);
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
@@ -101,9 +104,16 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
       rowSelection={rowSelection}
       onGridReady={handleGridReady}
     onSelectionChanged={onSelectionChanged}
+    onFilterChanged={(event) => {
+      console.log('AG GRID BASE: onFilterChanged event:', event);
+      if (onFilterChanged) {
+        onFilterChanged(event);
+      }
+    }}
     domLayout={domLayout}
     modules={[
       ClientSideRowModelModule,
+      ClientSideRowModelApiModule,
       ValidationModule,
       PaginationModule,
       RowSelectionModule,

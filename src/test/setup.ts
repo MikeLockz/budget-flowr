@@ -60,21 +60,13 @@ vi.mock('ag-grid-react', () => {
   };
 });
 
-vi.mock('ag-grid-community', async () => {
-  return {
+vi.mock('ag-grid-community', async (importOriginal) => {
+  const actual = await importOriginal();
+  return Object.assign({}, actual, {
     ModuleRegistry: {
       registerModules: vi.fn(),
     },
-    ClientSideRowModelModule: 'ClientSideRowModelModule',
-    ValidationModule: 'ValidationModule',
-    PaginationModule: 'PaginationModule',
-    RowSelectionModule: 'RowSelectionModule',
-    TextFilterModule: 'TextFilterModule',
-    NumberFilterModule: 'NumberFilterModule',
-    DateFilterModule: 'DateFilterModule',
-    CustomFilterModule: 'CustomFilterModule',
-    ColumnAutoSizeModule: 'ColumnAutoSizeModule',
-  };
+  });
 });
 
 // Mock AG Grid styles
