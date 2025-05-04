@@ -20,6 +20,18 @@ export function formatCurrency(value: number, currency = "USD", locale = "en-US"
 }
 
 /**
+ * Formats a number as a whole dollar amount (no cents)
+ */
+export function formatDollarWholeNumber(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Math.round(value));
+}
+
+/**
  * Formats a date as a string
  */
 export function formatDate(date: Date, options: Intl.DateTimeFormatOptions = {}): string {
