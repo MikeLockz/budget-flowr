@@ -18,6 +18,9 @@ vi.mock('../hooks/use-transactions', () => ({
 
 // Mock the chart components
 vi.mock('../components/charts/echarts-base', () => ({
+  EChartsBase: ({ style, className }: { style?: React.CSSProperties; className?: string }) => (
+    <div data-testid="echarts-base" style={style} className={className}>ECharts Base</div>
+  ),
   LineChart: () => <div data-testid="line-chart">Line Chart</div>,
   BarChart: () => <div data-testid="bar-chart">Bar Chart</div>,
   PieChart: () => <div data-testid="pie-chart">Pie Chart</div>,

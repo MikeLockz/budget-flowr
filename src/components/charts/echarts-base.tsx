@@ -114,7 +114,7 @@ export const LineChart: React.FC<{
         });
         tooltipText += `<b>Total: ${formatDollarWholeNumber(total)}</b>`;
         return tooltipText;
-      }
+      },
     },
     legend: {
       data: data.map(item => item.name),
@@ -173,7 +173,7 @@ export const BarChart: React.FC<{
         });
         tooltipText += `<b>Total: ${formatDollarWholeNumber(total)}</b>`;
         return tooltipText;
-      }
+      },
     },
     legend: {
       data: data.map(item => item.name),

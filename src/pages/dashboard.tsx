@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { LineChart, BarChart, PieChart } from '../components/charts/echarts-base';
+import { CalendarHeatmap } from '../components/charts/CalendarHeatmap';
 import { TransactionsGrid } from '@/components/data-grid/transactions-grid';
 import { useTransactionData } from '@/hooks/use-transactions';
 import { formatCurrency } from '@/lib/utils';
@@ -123,6 +124,30 @@ export const Dashboard = () => {
 
   const filteredCategoryChartData = prepareCategoryChartData(transactionsWithCategoryNameAndAmount, categoryChartData.categories);
 
+  // Prepare calendar heatmap data
+  const prepareCalendarHeatmapData = (
+    transactions: Array<{ date: string; amount: number }> = []
+  ) => {
+    const data: [string, number][] = [];
+    const transactionCountByDate = new Map<string, number>();
+
+    // Group transactions by date
+    transactions.forEach(t => {
+      const dateStr = t.date.substring(0, 10); // YYYY-MM-DD format
+      const count = transactionCountByDate.get(dateStr) || 0;
+      transactionCountByDate.set(dateStr, count + 1);
+    });
+
+    // Convert to [date, count] pairs
+    transactionCountByDate.forEach((count, date) => {
+      data.push([date, count]);
+    });
+
+    return data;
+  };
+
+  const calendarData = prepareCalendarHeatmapData(displayTransactions);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -194,6 +219,15 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent className="h-80">
             <PieChart data={filteredCategoryChartData.pieChartData} />
+          </CardContent>
+        </Card>
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>Transaction Activity</CardTitle>
+            <CardDescription>Daily transaction frequency for 2024</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CalendarHeatmap data={calendarData} year={2024} />
           </CardContent>
         </Card>
       </div>
