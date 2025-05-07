@@ -148,6 +148,18 @@ export const Dashboard = () => {
 
   const calendarData = prepareCalendarHeatmapData(displayTransactions);
 
+  // Extract unique years from filtered transactions
+  const getTransactionYears = (transactions: Array<{ date: string }> = []) => {
+    const years = new Set<number>();
+    transactions.forEach(t => {
+      const year = new Date(t.date).getFullYear();
+      years.add(year);
+    });
+    return Array.from(years).sort();
+  };
+
+  const transactionYears = getTransactionYears(displayTransactions);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -224,10 +236,10 @@ export const Dashboard = () => {
         <Card className="col-span-2">
           <CardHeader>
             <CardTitle>Transaction Activity</CardTitle>
-            <CardDescription>Daily transaction frequency for 2024</CardDescription>
+            <CardDescription>Daily transaction frequency for selected years</CardDescription>
           </CardHeader>
           <CardContent>
-            <CalendarHeatmap data={calendarData} year={2024} />
+            <CalendarHeatmap data={calendarData} years={transactionYears.length > 0 ? transactionYears : [2024]} />
           </CardContent>
         </Card>
       </div>
