@@ -1,7 +1,9 @@
 import { ParsedCSVData } from './csv-parser';
-import { transactionRepository, categoryRepository } from '@/lib/repositories';
+import { transactionRepository, categoryRepository, importRepository } from '@/lib/repositories';
 import { FieldMapping, PreviewData } from './field-mapping-types';
 import { applyMapping, generatePreview } from './field-mapping-service';
+import { generateUUID, ImportSession } from '@/lib/db';
+import { isDuplicateTransaction } from './transaction-deduplication';
 
 /**
  * Parse CSV and return headers and sample data for mapping UI.
@@ -81,16 +83,29 @@ export function previewMappedTransactions(
   return generatePreview(csvData.sampleData, mapping);
 }
 
+
 /**
  * Import transactions with specified mapping.
+ * Returns both inserted IDs and count of duplicates skipped.
  */
 export async function importCSVWithMapping(
   file: File,
   mapping: FieldMapping
-): Promise<string[]> {
+): Promise<{ insertedIds: string[]; duplicateCount: number }> {
   try {
     const parsedData = await parseCSVForMapping(file);
     const transactions = applyMapping(parsedData.allData, mapping);
+    
+    // Create import session
+    const importId = generateUUID();
+    const importSession: ImportSession = {
+      id: importId,
+      date: new Date().toISOString().split('T')[0],
+      fileName: file.name,
+      totalCount: transactions.length,
+      importedCount: 0,
+      duplicateCount: 0
+    };
 
     // Extract unique category IDs from transactions
     const categoryIds = new Set<string>();
@@ -125,14 +140,30 @@ export async function importCSVWithMapping(
       });
     }
 
-    // Now insert the transactions
+    // Now insert the transactions, skipping duplicates
     const insertedIds: string[] = [];
+    let duplicateCount = 0;
+    
     for (const transaction of transactions) {
-      const id = await transactionRepository.add(transaction);
-      insertedIds.push(id);
+      // Check if this transaction is a duplicate
+      const isDuplicate = await isDuplicateTransaction(transaction);
+      
+      if (isDuplicate) {
+        duplicateCount++;
+      } else {
+        const id = await transactionRepository.add(transaction);
+        insertedIds.push(id);
+      }
     }
+    
+    // Update import session with results
+    importSession.importedCount = insertedIds.length;
+    importSession.duplicateCount = duplicateCount;
+    
+    // Save the import session
+    await importRepository.add(importSession);
 
-    return insertedIds;
+    return { insertedIds, duplicateCount };
   } catch (error) {
     console.error('Error importing CSV file:', error);
     throw error;
@@ -142,7 +173,7 @@ export async function importCSVWithMapping(
 /**
  * Legacy function for backward compatibility.
  */
-export async function importCSVFile(file: File): Promise<string[]> {
+export async function importCSVFile(file: File): Promise<{ insertedIds: string[]; duplicateCount: number }> {
   try {
     const parsedData = await parseCSVForMapping(file);
 
@@ -170,3 +201,6 @@ export async function importCSVFile(file: File): Promise<string[]> {
     throw error;
   }
 }
+
+// Export transaction deduplication utilities
+export { findDuplicateTransactions, removeDuplicateTransactions, mergeDuplicateTransactions } from './transaction-deduplication';

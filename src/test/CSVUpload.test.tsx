@@ -51,7 +51,10 @@ describe('CSVUpload Component', () => {
   });
   
   it('shows success message after successful import', async () => {
-    (importService.importCSVWithMapping as unknown as Mock).mockResolvedValue(['id1', 'id2', 'id3']);
+    (importService.importCSVWithMapping as unknown as Mock).mockResolvedValue({ 
+      insertedIds: ['id1', 'id2', 'id3'], 
+      duplicateCount: 0 
+    });
     (importService.parseCSVForMapping as unknown as Mock).mockResolvedValue({
       headers: ['date', 'description', 'amount', 'type'],
       sampleData: [{}],
@@ -83,7 +86,7 @@ describe('CSVUpload Component', () => {
     expect(screen.getByTestId('status-message')).toHaveTextContent('Importing...');
     
     await waitFor(() => {
-      expect(screen.getByTestId('status-message')).toHaveTextContent('Successfully imported 3 transactions.');
+      expect(screen.getByTestId('status-message')).toHaveTextContent('Successfully imported 3 transactions. Skipped 0 duplicates.');
     });
     
     expect(importService.importCSVWithMapping).toHaveBeenCalledWith(file, expect.any(Object));

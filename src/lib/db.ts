@@ -14,6 +14,15 @@ export interface Transaction {
   accountId?: string; // New field for version 2
 }
 
+export interface ImportSession {
+  id: string;
+  date: string;
+  fileName: string;
+  totalCount: number;
+  importedCount: number;
+  duplicateCount: number;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -57,6 +66,7 @@ export class BudgetFlowrDB extends Dexie {
   assets!: Table<Asset, string>;
   sinkingFunds!: Table<SinkingFund, string>;
   fieldMappings!: Table<FieldMapping, string>; // Use FieldMapping type instead of any
+  imports!: Table<ImportSession, string>; // New table for import sessions
 
   constructor() {
     super('BudgetFlowrDB');
@@ -87,6 +97,12 @@ export class BudgetFlowrDB extends Dexie {
     // Version 3: Add fieldMappings table
     this.version(3).stores({
       fieldMappings: 'id, name, sourceIdentifier'
+    });
+    
+    // Version 4: Add compound index for duplicate detection and imports table
+    this.version(4).stores({
+      transactions: 'id, date, categoryId, type, status, accountId, [date+amount+description]', // Added compound index
+      imports: 'id, date, fileName, totalCount, importedCount, duplicateCount'
     });
   }
 }

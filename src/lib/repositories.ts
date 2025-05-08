@@ -1,5 +1,5 @@
 import Dexie from 'dexie';
-import { db, Transaction, Category, Account, Asset, SinkingFund } from './db';
+import { db, Transaction, Category, Account, Asset, SinkingFund, ImportSession } from './db';
 
 export class BaseRepository<T, K> {
   protected table: Dexie.Table<T, K>;
@@ -62,9 +62,16 @@ export class SinkingFundRepository extends BaseRepository<SinkingFund, string> {
   }
 }
 
+export class ImportRepository extends BaseRepository<ImportSession, string> {
+  constructor() {
+    super(db.imports);
+  }
+}
+
 // Export instances for use
 export const transactionRepository = new TransactionRepository();
 export const categoryRepository = new CategoryRepository();
 export const accountRepository = new AccountRepository();
 export const assetRepository = new AssetRepository();
 export const sinkingFundRepository = new SinkingFundRepository();
+export const importRepository = new ImportRepository();

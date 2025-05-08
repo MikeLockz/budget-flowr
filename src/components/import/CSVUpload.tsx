@@ -6,6 +6,7 @@ import {
 } from '@/lib/import/import-service';
 import { queryClient } from '@/lib/query-client';
 import { FieldMapping } from '@/lib/import/field-mapping-types';
+import { Transaction } from '@/lib/db';
 import { FieldMappingUI } from './FieldMappingUI';
 import { TransactionPreview } from './TransactionPreview';
 
@@ -17,7 +18,7 @@ export const CSVUpload: React.FC = () => {
   const [mapping, setMapping] = useState<FieldMapping | null>(null);
   const [previewData, setPreviewData] = useState<{
     rawData: Record<string, string>[];
-    mappedTransactions: any[];
+    mappedTransactions: Transaction[];
   } | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,8 +91,8 @@ export const CSVUpload: React.FC = () => {
     setStatus('Importing...');
 
     try {
-      const insertedIds = await importCSVWithMapping(file, mapping);
-      setStatus(`Successfully imported ${insertedIds.length} transactions.`);
+      const result = await importCSVWithMapping(file, mapping);
+      setStatus(`Successfully imported ${result.insertedIds.length} transactions. Skipped ${result.duplicateCount} duplicates.`);
       setFile(null);
       setMapping(null);
       setPreviewData(null);

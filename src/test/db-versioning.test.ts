@@ -38,8 +38,8 @@ describe('Database Versioning', () => {
   });
 
   it('should initialize with the correct version', async () => {
-    // The current version should be 3 based on our schema definition
-    expect(testDB.verno).toBe(3);
+    // The current version should be 4 based on our schema definition
+    expect(testDB.verno).toBe(4);
   });
 
   it('should have the correct schema for version 2', async () => {
