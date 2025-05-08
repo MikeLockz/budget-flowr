@@ -64,13 +64,22 @@ export const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({
   const dataByYear = groupDataByYear(data);
   const yearsToDisplay = determineYearsToDisplay();
   
-  // Define a specific style for the calendar heatmap
-  const calendarStyle: React.CSSProperties = {
-    height: '600px',
-    width: `${yearsToDisplay.length * 220 + 100}px`,
+  // Define a specific style for the outer container with scrolling
+  const containerStyle: React.CSSProperties = {
+    height: '400px', // Fixed height for a single row
+    overflowX: 'auto', // Enable horizontal scrolling
     paddingLeft: '20px',
     paddingBottom: '20px',
     ...style, // Allow any passed styles to override defaults
+  };
+
+  // Calculate the minimum width needed for all calendars
+  const minWidth = yearsToDisplay.length * 220 + 100;
+  
+  // Style for the inner chart container
+  const chartStyle: React.CSSProperties = {
+    height: '100%',
+    width: `${minWidth}px`, // Set explicit width to ensure scrolling works
   };
 
   const option: EChartsOption = {
@@ -95,47 +104,42 @@ export const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({
         return '';
       },
     },
-    // legend: {
-    //   data: yearsToDisplay.map(year => `${year}`),
-    //   bottom: 20
-    // },
-calendar: yearsToDisplay.map((year, index) => ({
-  orient: 'vertical',
-  range: year.toString(),
-  cellSize: [25, 'auto'],
-  top: 40,
-  bottom: 20,
-  left: index * 220 + 60,
-  yearLabel: { 
-    show: true,
-    margin: 18,
-    // margin: 40,
-    // position: 'top',
-    // formatter: '{start}',
-    // textStyle: {
-    //   fontSize: 16,
-    //   fontWeight: 'bold'
-    // }
-  },
-  dayLabel: {
-    firstDay: 1,
-    nameMap: 'en'
-  },
-  monthLabel: {
-    nameMap: 'en'
-  },
-  splitLine: {
-    show: true,
-    lineStyle: {
-      color: '#000',
-      width: 1,
-      type: 'solid'
-    }
-  },
-  itemStyle: {
-    borderWidth: 0.5
-  }
-})),
+    calendar: yearsToDisplay.map((year, index) => ({
+      orient: 'vertical',
+      range: year.toString(),
+      cellSize: [25, 25], // Fixed cell size for consistency
+      top: 40, // Fixed top margin
+      bottom: 30,
+      left: index * 220 + 60, // Position calendars horizontally in a single row
+      yearLabel: { 
+        show: true,
+        margin: 18,
+        position: 'top',
+        formatter: '{start}',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: 'bold'
+        }
+      },
+      dayLabel: {
+        firstDay: 1,
+        nameMap: 'en'
+      },
+      monthLabel: {
+        nameMap: 'en'
+      },
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: '#aaa',
+          width: 1, // Thinner border (1px)
+          type: 'solid'
+        }
+      },
+      itemStyle: {
+        borderWidth: 0.5
+      }
+    })),
     visualMap: {
       min: 0,
       max: Math.max(...data.map(d => d[1]), 10),
@@ -163,5 +167,12 @@ calendar: yearsToDisplay.map((year, index) => ({
     }))
   };
 
-  return <EChartsBase option={option} style={calendarStyle} className={className} theme={theme} />;
+  // Wrap the EChartsBase in a div with scrolling
+  return (
+    <div style={containerStyle} className={className}>
+      <div style={chartStyle}>
+        <EChartsBase option={option} theme={theme} />
+      </div>
+    </div>
+  );
 };
