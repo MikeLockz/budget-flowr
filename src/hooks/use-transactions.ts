@@ -64,7 +64,10 @@ export const useTransactionData = () => {
     expenseMap.set('Uncategorized', 0);
 
     transactionsWithCategoryName.forEach(t => {
-      if (t.type === 'expense') {
+      // Consider both 'expense' and expense-like types for category chart data
+      if (t.type === 'expense' || 
+          t.type === 'True Expense' || 
+          t.type === 'Capital Transfer') {
         const categoryName = expenseMap.has(t.categoryName) ? t.categoryName : 'Uncategorized';
         expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + t.amount);
       }

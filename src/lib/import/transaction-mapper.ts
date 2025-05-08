@@ -32,14 +32,27 @@ function parseAmount(amountStr: string): number {
  * Determines transaction type based on amount or type field.
  * @param amountStr - The amount string from CSV
  * @param typeStr - Optional type string from CSV
- * @returns 'income' | 'expense'
+ * @returns Transaction type
  */
-function determineType(amountStr: string, typeStr?: string): 'income' | 'expense' {
+function determineType(amountStr: string, typeStr?: string): 'income' | 'expense' | 'Capital Transfer' | 'Capital Inflow' | 'True Expense' | 'Reversed Capital Expense' | 'Reversed True Expense' {
   if (typeStr) {
-    const lower = typeStr.toLowerCase();
+    const lower = typeStr.toLowerCase().trim();
+    
+    // Check for matches with new transaction types (case insensitive, more flexible)
+    // Check reversed types first (more specific)
+    if (lower.includes('reversed') && lower.includes('capital') && lower.includes('expense')) return 'Reversed Capital Expense';
+    if (lower.includes('reversed') && lower.includes('true') && lower.includes('expense')) return 'Reversed True Expense';
+    // Then check non-reversed types (more general)
+    if (lower.includes('capital') && lower.includes('transfer')) return 'Capital Transfer';
+    if (lower.includes('capital') && lower.includes('inflow')) return 'Capital Inflow';
+    if (lower.includes('true') && lower.includes('expense')) return 'True Expense';
+    
+    // Fall back to original logic for income/expense
     if (lower.includes('income') || lower.includes('credit')) return 'income';
     if (lower.includes('expense') || lower.includes('debit')) return 'expense';
   }
+  
+  // Default behavior based on amount
   const amount = parseAmount(amountStr);
   return amount >= 0 ? 'income' : 'expense';
 }

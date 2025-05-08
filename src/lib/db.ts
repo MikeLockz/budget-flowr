@@ -9,7 +9,7 @@ export interface Transaction {
   description: string;
   categoryId: string;
   amount: number;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'Capital Transfer' | 'Capital Inflow' | 'True Expense' | 'Reversed Capital Expense' | 'Reversed True Expense';
   status: 'completed' | 'pending' | 'upcoming';
   accountId?: string; // New field for version 2
 }

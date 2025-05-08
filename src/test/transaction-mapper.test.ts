@@ -36,6 +36,25 @@ describe('Transaction Mapper', () => {
     expect(transactions[1].amount).toBe(-1000);
   });
   
+  it('should handle new transaction types from CSV data', () => {
+    const csvData = [
+      { date: '2025-01-01', description: 'Asset Purchase', amount: '1000.00', type: 'Capital Transfer' },
+      { date: '2025-01-02', description: 'Investment', amount: '500.00', type: 'Capital Inflow' },
+      { date: '2025-01-03', description: 'Insurance', amount: '200.00', type: 'True Expense' },
+      { date: '2025-01-04', description: 'Refund', amount: '50.00', type: 'Reversed Capital Expense' },
+      { date: '2025-01-05', description: 'Return', amount: '75.00', type: 'Reversed True Expense' }
+    ];
+    
+    const transactions = mapToTransactions(csvData);
+    
+    expect(transactions).toHaveLength(5);
+    expect(transactions[0].type).toBe('Capital Transfer');
+    expect(transactions[1].type).toBe('Capital Inflow');
+    expect(transactions[2].type).toBe('True Expense');
+    expect(transactions[3].type).toBe('Reversed Capital Expense');
+    expect(transactions[4].type).toBe('Reversed True Expense');
+  });
+  
   it('should handle different field names', () => {
     const csvData = [
       { Date: '2025-01-01', Description: 'Groceries', Amount: '100.00' }

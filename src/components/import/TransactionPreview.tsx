@@ -86,9 +86,13 @@ export const TransactionPreview: React.FC<TransactionPreviewProps> = ({ previewD
                       {transaction.description}
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                      transaction.type === 'expense' ? 'text-red-500' : 'text-green-500'
+                      ['expense', 'True Expense', 'Capital Transfer', 'Reversed Capital Expense'].includes(transaction.type) 
+                        ? 'text-red-500' 
+                        : 'text-green-500'
                     }`}>
-                      {transaction.type === 'expense' ? '-' : '+'}{transaction.amount.toFixed(2)}
+                      {['expense', 'True Expense', 'Capital Transfer', 'Reversed Capital Expense'].includes(transaction.type) 
+                        ? '-' 
+                        : '+'}{transaction.amount.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {transaction.type}

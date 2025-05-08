@@ -50,11 +50,14 @@ export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions
       headerName: 'Type',
       filter: 'agTextColumnFilter',
       cellRenderer: (params: { value?: string }) => {
-        return params.value === 'income' ? (
-          <span className="text-green-600 font-semibold">Income</span>
-        ) : (
-          <span className="text-red-600 font-semibold">Expense</span>
-        );
+        // Keep existing styling for income and expense
+        if (params.value === 'income') {
+          return <span className="text-green-600 font-semibold">Income</span>;
+        } else if (params.value === 'expense') {
+          return <span className="text-red-600 font-semibold">Expense</span>;
+        }
+        // Use default styling for new transaction types
+        return <span>{params.value}</span>;
       },
     },
     { field: 'status', headerName: 'Status' },

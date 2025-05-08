@@ -24,7 +24,7 @@ export function applyMapping(
       amount = -amount;
     }
 
-    let type: 'income' | 'expense';
+    let type: 'income' | 'expense' | 'Capital Transfer' | 'Capital Inflow' | 'True Expense' | 'Reversed Capital Expense' | 'Reversed True Expense';
     if (typeValue) {
       type = determineTypeFromString(typeValue);
     } else if (mapping.options.negativeAmountIsExpense) {
@@ -54,8 +54,24 @@ function parseAmount(amountStr: string): number {
   return parseFloat(cleaned) || 0;
 }
 
-function determineTypeFromString(typeStr: string): 'income' | 'expense' {
-  const lower = typeStr.toLowerCase();
+function determineTypeFromString(typeStr: string): 'income' | 'expense' | 'Capital Transfer' | 'Capital Inflow' | 'True Expense' | 'Reversed Capital Expense' | 'Reversed True Expense' {
+  const lower = typeStr.toLowerCase().trim();
+  
+  // Check for exact matches with transaction types first
+  if (lower === 'capital transfer') return 'Capital Transfer';
+  if (lower === 'capital inflow') return 'Capital Inflow';
+  if (lower === 'true expense') return 'True Expense';
+  if (lower === 'reversed capital expense') return 'Reversed Capital Expense';
+  if (lower === 'reversed true expense') return 'Reversed True Expense';
+  
+  // Check for partial matches if no exact match
+  if (lower.includes('capital') && lower.includes('transfer')) return 'Capital Transfer';
+  if (lower.includes('capital') && lower.includes('inflow')) return 'Capital Inflow';
+  if (lower.includes('true') && lower.includes('expense')) return 'True Expense';
+  if (lower.includes('reversed') && lower.includes('capital') && lower.includes('expense')) return 'Reversed Capital Expense';
+  if (lower.includes('reversed') && lower.includes('true') && lower.includes('expense')) return 'Reversed True Expense';
+  
+  // Fall back to income/expense
   if (lower.includes('income') || lower.includes('credit') || lower.includes('deposit')) {
     return 'income';
   }

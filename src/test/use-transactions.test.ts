@@ -1,5 +1,6 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useTransactions, useAddTransaction, useUpdateTransaction, useDeleteTransaction } from '../hooks/use-transactions';
 import { db, Transaction } from '../lib/db';
 import { createWrapper } from './test-utils';
@@ -66,6 +67,24 @@ describe('Transaction Hooks', () => {
           amount: 50,
           type: 'expense',
           status: 'pending',
+        },
+        {
+          id: 'test-id-3',
+          date: '2025-05-03',
+          description: 'Test transaction 3',
+          categoryId: 'cat3',
+          amount: 200,
+          type: 'Capital Transfer',
+          status: 'completed',
+        },
+        {
+          id: 'test-id-4',
+          date: '2025-05-04',
+          description: 'Test transaction 4',
+          categoryId: 'cat4',
+          amount: 300,
+          type: 'True Expense',
+          status: 'completed',
         },
       ];
 
