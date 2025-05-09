@@ -32,50 +32,50 @@ vi.mock('../components/data-grid/ag-grid-base', () => ({
 
 describe('Dashboard component', () => {
   // Sample transaction data for testing
-  const mockTransactions = [
+    const mockTransactions = [
+      {
+        id: 'capital-inflow-1',
+        date: '2025-05-01',
+        description: 'Salary',
+        categoryId: 'income',
+        amount: 3000,
+        type: 'Capital Inflow',
+        status: 'completed',
+      },
+      {
+        id: 'capital-inflow-2',
+        date: '2025-05-02',
+        description: 'Freelance',
+        categoryId: 'income',
+        amount: 500,
+        type: 'Capital Inflow',
+        status: 'completed',
+      },
     {
-      id: 'income-1',
-      date: '2025-05-01',
-      description: 'Salary',
-      categoryId: 'income',
-      amount: 3000,
-      type: 'income',
-      status: 'completed',
-    },
-    {
-      id: 'income-2',
-      date: '2025-05-02',
-      description: 'Freelance',
-      categoryId: 'income',
-      amount: 500,
-      type: 'income',
-      status: 'completed',
-    },
-    {
-      id: 'expense-1',
+      id: 'true-expense-1',
       date: '2025-05-03',
       description: 'Rent',
       categoryId: 'housing',
       amount: 1200,
-      type: 'expense',
+      type: 'True Expense',
       status: 'completed',
     },
     {
-      id: 'expense-2',
+      id: 'capital-expense-1',
       date: '2025-05-04',
       description: 'Groceries',
       categoryId: 'food',
       amount: 200,
-      type: 'expense',
+      type: 'Capital Expense',
       status: 'completed',
     },
     {
-      id: 'expense-3',
+      id: 'true-expense-2',
       date: '2025-05-05',
       description: 'Utilities',
       categoryId: 'utilities',
       amount: 150,
-      type: 'expense',
+      type: 'True Expense',
       status: 'completed',
     },
   ];
@@ -147,10 +147,10 @@ describe('Dashboard component', () => {
     const totalExpenses = 1550; // 1200 + 200 + 150
     const balance = totalIncome - totalExpenses; // 1950
 
-    // Check if summary cards display correct values
-    expect(screen.getByText(formatCurrency(totalIncome))).toBeInTheDocument();
-    expect(screen.getByText(formatCurrency(totalExpenses))).toBeInTheDocument();
-    expect(screen.getByText(formatCurrency(balance))).toBeInTheDocument();
+    // Check if summary cards display correct values using test ids
+    expect(screen.getByTestId('total-income')).toHaveTextContent(formatCurrency(totalIncome));
+    expect(screen.getByTestId('total-expenses')).toHaveTextContent(formatCurrency(totalExpenses));
+    expect(screen.getByTestId('balance')).toHaveTextContent(formatCurrency(balance));
   });
 
   it('renders all chart components', () => {
@@ -194,16 +194,16 @@ describe('Dashboard component', () => {
           description: 'Salary',
           categoryId: 'income',
           amount: 3000,
-          type: 'income',
+          type: 'Capital Inflow',
           status: 'completed',
         },
         {
-          id: 'expense-1',
+          id: 'true-expense-1',
           date: '2025-05-03',
           description: 'Rent',
           categoryId: 'housing',
           amount: 1200,
-          type: 'expense',
+          type: 'True Expense',
           status: 'completed',
         },
       ],
@@ -226,16 +226,16 @@ describe('Dashboard component', () => {
           description: 'Salary',
           categoryId: 'income',
           amount: 1000,
-          type: 'income',
+          type: 'Capital Inflow',
           status: 'completed',
         },
         {
-          id: 'expense-1',
+          id: 'true-expense-1',
           date: '2025-05-03',
           description: 'Rent',
           categoryId: 'housing',
           amount: 1500,
-          type: 'expense',
+          type: 'True Expense',
           status: 'completed',
         },
       ],

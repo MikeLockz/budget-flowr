@@ -10,11 +10,13 @@ import { CSVUpload } from '@/components/import/CSVUpload';
 import { useFilterContext } from '@/contexts/FilterContext';
 
 export const calculateTotalIncome = (transactions: Array<{ type: string; amount: number }> = []) => {
-  return transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  return transactions.filter(t => t.type === 'Capital Inflow').reduce((sum, t) => sum + t.amount, 0);
 };
 
 export const calculateTotalExpenses = (transactions: Array<{ type: string; amount: number }> = []) => {
-  return transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+  return transactions
+    .filter(t => t.type === 'True Expense' || t.type === 'Capital Expense')
+    .reduce((sum, t) => sum + t.amount, 0);
 };
 
 export const calculateBalance = (income: number, expenses: number) => {
@@ -40,9 +42,9 @@ export const prepareMonthlyChartData = (transactions: Array<{ date: string; type
   transactions.forEach(t => {
     const date = new Date(t.date);
     const month = date.getMonth();
-    if (t.type === 'income') {
+    if (t.type === 'Capital Inflow') {
       incomeData[month] += t.amount;
-    } else if (t.type === 'expense') {
+    } else if (t.type === 'True Expense' || t.type === 'Capital Expense') {
       expenseData[month] += t.amount;
     }
   });
@@ -178,7 +180,7 @@ export const Dashboard = () => {
             <CardTitle className="text-sm font-medium">Total Income</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</div>
+            <div data-testid="total-income" className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</div>
             <p className="text-xs text-muted-foreground">+20% from last month</p>
           </CardContent>
         </Card>
@@ -187,7 +189,7 @@ export const Dashboard = () => {
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div>
+            <div data-testid="total-expenses" className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">+5% from last month</p>
           </CardContent>
         </Card>
@@ -196,7 +198,7 @@ export const Dashboard = () => {
             <CardTitle className="text-sm font-medium">Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div data-testid="balance" className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(balance)}
             </div>
             <p className="text-xs text-muted-foreground">+12% from last month</p>

@@ -11,48 +11,48 @@ describe('Dashboard utility functions', () => {
   // Sample transaction data for testing
   const mockTransactions: Transaction[] = [
     {
-      id: 'income-1',
+      id: 'capital-inflow-1',
       date: '2025-05-01',
       description: 'Salary',
       categoryId: 'income',
       amount: 3000,
-      type: 'income',
+      type: 'Capital Inflow',
       status: 'completed',
     },
     {
-      id: 'income-2',
+      id: 'capital-inflow-2',
       date: '2025-05-02',
       description: 'Freelance',
       categoryId: 'income',
       amount: 500,
-      type: 'income',
+      type: 'Capital Inflow',
       status: 'completed',
     },
     {
-      id: 'expense-1',
+      id: 'true-expense-1',
       date: '2025-05-03',
       description: 'Rent',
       categoryId: 'housing',
       amount: 1200,
-      type: 'expense',
+      type: 'True Expense',
       status: 'completed',
     },
     {
-      id: 'expense-2',
+      id: 'capital-expense-1',
       date: '2025-05-04',
       description: 'Groceries',
       categoryId: 'food',
       amount: 200,
-      type: 'expense',
+      type: 'Capital Expense',
       status: 'completed',
     },
     {
-      id: 'expense-3',
+      id: 'true-expense-2',
       date: '2025-05-05',
       description: 'Utilities',
       categoryId: 'utilities',
       amount: 150,
-      type: 'expense',
+      type: 'True Expense',
       status: 'completed',
     },
   ];
@@ -68,7 +68,7 @@ describe('Dashboard utility functions', () => {
       expect(result).toBe(0);
     });
 
-    it('returns 0 when no income transactions exist', () => {
+    it('returns 0 when no Capital Inflow transactions exist', () => {
       const expensesOnly = mockTransactions.filter(t => t.type === 'expense');
       const result = calculateTotalIncome(expensesOnly);
       expect(result).toBe(0);
@@ -87,7 +87,7 @@ describe('Dashboard utility functions', () => {
     });
 
     it('returns 0 when no expense transactions exist', () => {
-      const incomeOnly = mockTransactions.filter(t => t.type === 'income');
+      const incomeOnly = mockTransactions.filter(t => t.type === 'Capital Inflow');
       const result = calculateTotalExpenses(incomeOnly);
       expect(result).toBe(0);
     });
