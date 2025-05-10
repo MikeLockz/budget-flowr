@@ -24,11 +24,12 @@ export const calculateBalance = (income: number, expenses: number) => {
 };
 
 export const prepareMonthlyChartData = (transactions: Array<{ date: string; type: string; amount: number }> = []) => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   if (transactions.length === 0) {
+    // Return default data for empty transactions
     return {
-      months,
+      months: monthNames,
       lineChartData: [
         { name: 'Income', data: [2800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
         { name: 'Expenses', data: [0, 2100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
@@ -36,21 +37,56 @@ export const prepareMonthlyChartData = (transactions: Array<{ date: string; type
     };
   }
 
-  const incomeData = new Array(12).fill(0);
-  const expenseData = new Array(12).fill(0);
+  // Extract unique years from transactions
+  const years = Array.from(new Set(
+    transactions.map(t => new Date(t.date).getFullYear())
+  )).sort();
 
+  // If no valid years, return default data
+  if (years.length === 0) {
+    return {
+      months: monthNames,
+      lineChartData: [
+        { name: 'Income', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+        { name: 'Expenses', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+      ],
+    };
+  }
+
+  // Create consecutive month labels with years
+  const consecutiveMonths: string[] = [];
+  years.forEach(year => {
+    monthNames.forEach(month => {
+      consecutiveMonths.push(`${month} ${year}`);
+    });
+  });
+
+  // Initialize data arrays for all months across all years
+  const totalMonths = years.length * 12;
+  const incomeData = new Array(totalMonths).fill(0);
+  const expenseData = new Array(totalMonths).fill(0);
+
+  // Populate data arrays
   transactions.forEach(t => {
     const date = new Date(t.date);
+    const year = date.getFullYear();
     const month = date.getMonth();
+    
+    // Find the index in our consecutive array
+    const yearIndex = years.indexOf(year);
+    if (yearIndex === -1) return; // Skip if year not in our range
+    
+    const dataIndex = yearIndex * 12 + month;
+    
     if (t.type === 'Capital Inflow') {
-      incomeData[month] += t.amount;
+      incomeData[dataIndex] += t.amount;
     } else if (t.type === 'True Expense' || t.type === 'Capital Expense') {
-      expenseData[month] += t.amount;
+      expenseData[dataIndex] += t.amount;
     }
   });
 
   return {
-    months,
+    months: consecutiveMonths,
     lineChartData: [
       { name: 'Income', data: incomeData },
       { name: 'Expenses', data: expenseData },
