@@ -1,9 +1,10 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/query-client';
 import { AppLayout } from './components/layout/app-layout';
-import Dashboard from './pages/dashboard';
+import { Dashboard } from './pages/dashboard';
 import { useEffect } from 'react';
 import { useAppStore } from './store/app-store';
+import { FilterProvider } from './contexts/FilterContext';
 
 function App() {
   const { theme } = useAppStore();
@@ -28,9 +29,11 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppLayout>
-        <Dashboard />
-      </AppLayout>
+      <FilterProvider>
+        <AppLayout>
+          <Dashboard />
+        </AppLayout>
+      </FilterProvider>
     </QueryClientProvider>
   );
 }

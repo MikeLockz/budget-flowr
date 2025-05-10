@@ -1,52 +1,212 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { LineChart, BarChart, PieChart } from '@/components/charts/echarts-base';
-import { ExampleDataGrid } from '@/components/data-grid/ag-grid-base';
-import { useTransactions } from '@/hooks/use-transactions';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { LineChart, BarChart, PieChart } from '../components/charts/echarts-base';
+import { CalendarHeatmap } from '../components/charts/CalendarHeatmap';
+import { TransactionsGrid } from '@/components/data-grid/transactions-grid';
+import { useTransactionData } from '@/hooks/use-transactions';
 import { formatCurrency } from '@/lib/utils';
+import { CSVUpload } from '@/components/import/CSVUpload';
+import { useFilterContext } from '@/contexts/FilterContext';
 
-export const Dashboard: React.FC = () => {
-  const { data: transactions, isLoading } = useTransactions();
+export const calculateTotalIncome = (transactions: Array<{ type: string; amount: number }> = []) => {
+  return transactions.filter(t => t.type === 'Capital Inflow').reduce((sum, t) => sum + t.amount, 0);
+};
 
-  // Calculate summary data
-  const totalIncome = transactions?.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const totalExpenses = transactions?.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const balance = totalIncome - totalExpenses;
+export const calculateTotalExpenses = (transactions: Array<{ type: string; amount: number }> = []) => {
+  return transactions
+    .filter(t => t.type === 'True Expense' || t.type === 'Capital Expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+};
 
-  // Prepare chart data
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  
-  const incomeData = [2800, 3200, 3100, 3500, 0, 0, 0, 0, 0, 0, 0, 0];
-  const expenseData = [1900, 2100, 1800, 2000, 0, 0, 0, 0, 0, 0, 0, 0];
-  
-  const lineChartData = [
-    { name: 'Income', data: incomeData },
-    { name: 'Expenses', data: expenseData },
-  ];
+export const calculateBalance = (income: number, expenses: number) => {
+  return income - expenses;
+};
 
-  // Category data for bar chart
-  const categories = ['Housing', 'Food', 'Transportation', 'Utilities', 'Entertainment'];
-  const categoryExpenses = [1200, 450, 200, 300, 150];
-  
+export const prepareMonthlyChartData = (transactions: Array<{ date: string; type: string; amount: number }> = []) => {
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  if (transactions.length === 0) {
+    // Return default data for empty transactions
+    return {
+      months: monthNames,
+      lineChartData: [
+        { name: 'Income', data: [2800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+        { name: 'Expenses', data: [0, 2100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+      ],
+    };
+  }
+
+  // Extract unique years from transactions
+  const years = Array.from(new Set(
+    transactions.map(t => new Date(t.date).getFullYear())
+  )).sort();
+
+  // If no valid years, return default data
+  if (years.length === 0) {
+    return {
+      months: monthNames,
+      lineChartData: [
+        { name: 'Income', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+        { name: 'Expenses', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+      ],
+    };
+  }
+
+  // Create consecutive month labels with years
+  const consecutiveMonths: string[] = [];
+  years.forEach(year => {
+    monthNames.forEach(month => {
+      consecutiveMonths.push(`${month} ${year}`);
+    });
+  });
+
+  // Initialize data arrays for all months across all years
+  const totalMonths = years.length * 12;
+  const incomeData = new Array(totalMonths).fill(0);
+  const expenseData = new Array(totalMonths).fill(0);
+
+  // Populate data arrays
+  transactions.forEach(t => {
+    const date = new Date(t.date);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    
+    // Find the index in our consecutive array
+    const yearIndex = years.indexOf(year);
+    if (yearIndex === -1) return; // Skip if year not in our range
+    
+    const dataIndex = yearIndex * 12 + month;
+    
+    if (t.type === 'Capital Inflow') {
+      incomeData[dataIndex] += t.amount;
+    } else if (t.type === 'True Expense' || t.type === 'Capital Expense') {
+      expenseData[dataIndex] += t.amount;
+    }
+  });
+
+  return {
+    months: consecutiveMonths,
+    lineChartData: [
+      { name: 'Income', data: incomeData },
+      { name: 'Expenses', data: expenseData },
+    ],
+  };
+};
+
+export const prepareCategoryChartData = (transactions: Array<{ categoryName?: string; amount: number }> = [], categories: string[] = []) => {
+  const expenseMap = new Map<string, number>();
+  categories.forEach(c => {
+    expenseMap.set(c, 0);
+  });
+  expenseMap.set('Uncategorized', 0);
+
+  transactions.forEach(t => {
+    if (t.amount && t.categoryName) {
+      const categoryName = expenseMap.has(t.categoryName) ? t.categoryName : 'Uncategorized';
+      expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + t.amount);
+    }
+  });
+
+  const categoriesList = Array.from(expenseMap.keys());
+  const categoryExpenses = Array.from(expenseMap.values());
+
   const barChartData = [
     { name: 'Expenses', data: categoryExpenses },
   ];
 
-  // Pie chart data
-  const pieChartData = [
-    { name: 'Housing', value: 1200 },
-    { name: 'Food', value: 450 },
-    { name: 'Transportation', value: 200 },
-    { name: 'Utilities', value: 300 },
-    { name: 'Entertainment', value: 150 },
-  ];
+  const pieChartData = categoriesList.map((name, index) => ({
+    name,
+    value: categoryExpenses[index],
+  }));
+
+  return {
+    categories: categoriesList,
+    barChartData,
+    pieChartData,
+  };
+};
+
+export const Dashboard = () => {
+  const { transactions, categoryChartData, isLoading } = useTransactionData();
+  const { visibleTransactionIds, resetFilters } = useFilterContext();
+
+  // Ensure transactions is always an array
+  const transactionsArray = transactions || [];
+
+  // Use filtered transactions if available, otherwise use all transactions
+  const displayTransactions = visibleTransactionIds.length > 0
+    ? transactionsArray.filter(t => visibleTransactionIds.includes(t.id))
+    : transactionsArray;
+
+  console.log('DASHBOARD: visibleTransactionIds:', visibleTransactionIds);
+  console.log('DASHBOARD: visibleTransactionIds (full):', JSON.stringify(visibleTransactionIds));
+  console.log('DASHBOARD: Total transactions:', transactionsArray.length);
+  console.log('DASHBOARD: Filtered transactions:', displayTransactions.length);
+
+  // Calculate totals based on filtered transactions
+  const totalIncome = calculateTotalIncome(displayTransactions);
+  const totalExpenses = calculateTotalExpenses(displayTransactions);
+  const balance = calculateBalance(totalIncome, totalExpenses);
+
+  // Prepare chart data based on filtered transactions
+  const { months, lineChartData } = prepareMonthlyChartData(displayTransactions);
+
+  // Prepare category chart data based on filtered transactions
+  // Map transactions to include categoryName and amount for chart data preparation
+  const transactionsWithCategoryNameAndAmount = displayTransactions.map((t: { categoryName?: string; amount?: number }) => ({
+    ...t,
+    categoryName: t.categoryName || 'Uncategorized',
+    amount: t.amount || 0,
+  }));
+
+  const filteredCategoryChartData = prepareCategoryChartData(transactionsWithCategoryNameAndAmount, categoryChartData.categories);
+
+  // Prepare calendar heatmap data
+  const prepareCalendarHeatmapData = (
+    transactions: Array<{ date: string; amount: number }> = []
+  ) => {
+    const data: [string, number][] = [];
+    const transactionCountByDate = new Map<string, number>();
+
+    // Group transactions by date
+    transactions.forEach(t => {
+      const dateStr = t.date.substring(0, 10); // YYYY-MM-DD format
+      const count = transactionCountByDate.get(dateStr) || 0;
+      transactionCountByDate.set(dateStr, count + 1);
+    });
+
+    // Convert to [date, count] pairs
+    transactionCountByDate.forEach((count, date) => {
+      data.push([date, count]);
+    });
+
+    return data;
+  };
+
+  const calendarData = prepareCalendarHeatmapData(displayTransactions);
+
+  // Extract unique years from filtered transactions
+  const getTransactionYears = (transactions: Array<{ date: string }> = []) => {
+    const years = new Set<number>();
+    transactions.forEach(t => {
+      const year = new Date(t.date).getFullYear();
+      years.add(year);
+    });
+    return Array.from(years).sort();
+  };
+
+  const transactionYears = getTransactionYears(displayTransactions);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <Button>Add Transaction</Button>
+        <div className="flex space-x-2">
+          <Button onClick={resetFilters}>Reset Filters</Button>
+          <Button>Add Transaction</Button>
+          <CSVUpload />
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -56,7 +216,7 @@ export const Dashboard: React.FC = () => {
             <CardTitle className="text-sm font-medium">Total Income</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</div>
+            <div data-testid="total-income" className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</div>
             <p className="text-xs text-muted-foreground">+20% from last month</p>
           </CardContent>
         </Card>
@@ -65,7 +225,7 @@ export const Dashboard: React.FC = () => {
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div>
+            <div data-testid="total-expenses" className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">+5% from last month</p>
           </CardContent>
         </Card>
@@ -74,7 +234,7 @@ export const Dashboard: React.FC = () => {
             <CardTitle className="text-sm font-medium">Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div data-testid="balance" className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(balance)}
             </div>
             <p className="text-xs text-muted-foreground">+12% from last month</p>
@@ -99,7 +259,7 @@ export const Dashboard: React.FC = () => {
             <CardDescription>Current month breakdown</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            <BarChart data={barChartData} xAxisData={categories} />
+            <BarChart data={filteredCategoryChartData.barChartData} xAxisData={filteredCategoryChartData.categories} />
           </CardContent>
         </Card>
         <Card>
@@ -108,7 +268,16 @@ export const Dashboard: React.FC = () => {
             <CardDescription>Current month breakdown</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            <PieChart data={pieChartData} />
+            <PieChart data={filteredCategoryChartData.pieChartData} />
+          </CardContent>
+        </Card>
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>Transaction Activity</CardTitle>
+            <CardDescription>Daily transaction frequency for selected years</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CalendarHeatmap data={calendarData} years={transactionYears.length > 0 ? transactionYears : [2024]} />
           </CardContent>
         </Card>
       </div>
@@ -123,12 +292,10 @@ export const Dashboard: React.FC = () => {
           {isLoading ? (
             <div className="flex justify-center p-4">Loading transactions...</div>
           ) : (
-            <ExampleDataGrid />
+            <TransactionsGrid transactions={displayTransactions} />
           )}
         </CardContent>
       </Card>
     </div>
   );
 };
-
-export default Dashboard;

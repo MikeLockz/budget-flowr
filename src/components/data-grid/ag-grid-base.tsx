@@ -1,13 +1,24 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, GridReadyEvent, GridApi } from 'ag-grid-community';
+import { ColDef, GridReadyEvent, GridApi, ClientSideRowModelModule, ClientSideRowModelApiModule, ValidationModule, PaginationModule, RowSelectionModule, TextFilterModule, NumberFilterModule, DateFilterModule, CustomFilterModule, ColumnAutoSizeModule, ModuleRegistry } from 'ag-grid-community';
 
 // Import AG Grid styles
-import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-// Import AG Grid Enterprise features
-import 'ag-grid-enterprise';
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  ClientSideRowModelApiModule,
+  ValidationModule,
+  PaginationModule,
+  RowSelectionModule,
+  TextFilterModule,
+  NumberFilterModule,
+  DateFilterModule,
+  CustomFilterModule,
+  ColumnAutoSizeModule,
+]);
+
+
 
 interface AgGridBaseProps<TData = Record<string, unknown>> {
   rowData: TData[];
@@ -17,11 +28,11 @@ interface AgGridBaseProps<TData = Record<string, unknown>> {
   style?: React.CSSProperties;
   pagination?: boolean;
   paginationPageSize?: number;
-  rowSelection?: 'single' | 'multiple';
-  enableRangeSelection?: boolean;
-  enableCharts?: boolean;
+  rowSelection?: { mode: 'singleRow' | 'multiRow' } | undefined;
   onGridReady?: (params: GridReadyEvent) => void;
   onSelectionChanged?: (event: unknown) => void;
+  domLayout?: 'normal' | 'autoHeight' | 'print';
+  onFilterChanged?: (event: import("ag-grid-community").FilterChangedEvent) => void;
 }
 
 /**
@@ -42,10 +53,10 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
   pagination = false,
   paginationPageSize = 10,
   rowSelection,
-  enableRangeSelection = false,
-  enableCharts = false,
   onGridReady,
   onSelectionChanged,
+  domLayout,
+  onFilterChanged,
 }) => {
   const gridRef = useRef<AgGridReact>(null);
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
@@ -88,13 +99,31 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
         pagination={pagination}
-        paginationPageSize={paginationPageSize}
-        rowSelection={rowSelection}
-        enableRangeSelection={enableRangeSelection}
-        enableCharts={enableCharts}
-        onGridReady={handleGridReady}
-        onSelectionChanged={onSelectionChanged}
-      />
+      paginationPageSize={paginationPageSize}
+      paginationPageSizeSelector={[100, 500, 1000]}
+      rowSelection={rowSelection}
+      onGridReady={handleGridReady}
+    onSelectionChanged={onSelectionChanged}
+    onFilterChanged={(event) => {
+      console.log('AG GRID BASE: onFilterChanged event:', event);
+      if (onFilterChanged) {
+        onFilterChanged(event);
+      }
+    }}
+    domLayout={domLayout}
+    modules={[
+      ClientSideRowModelModule,
+      ClientSideRowModelApiModule,
+      ValidationModule,
+      PaginationModule,
+      RowSelectionModule,
+      TextFilterModule,
+      NumberFilterModule,
+      DateFilterModule,
+      CustomFilterModule,
+      ColumnAutoSizeModule,
+    ]}
+  />
     </div>
   );
 };
@@ -106,12 +135,12 @@ export const ExampleDataGrid: React.FC = () => {
   // Sample column definitions
   const columnDefs: ColDef[] = [
     { field: 'id', headerName: 'ID', width: 70 },
-    { field: 'name', headerName: 'Name', filter: 'agTextColumnFilter' },
-    { field: 'category', headerName: 'Category', filter: 'agTextColumnFilter' },
+    { field: 'name', headerName: 'Name', filter: 'text' },
+    { field: 'category', headerName: 'Category', filter: 'text' },
     { 
       field: 'amount', 
       headerName: 'Amount', 
-      filter: 'agNumberColumnFilter',
+      filter: 'number',
       valueFormatter: (params) => {
         return params.value ? `$${params.value.toFixed(2)}` : '';
       }
@@ -119,7 +148,7 @@ export const ExampleDataGrid: React.FC = () => {
     { 
       field: 'date', 
       headerName: 'Date', 
-      filter: 'agDateColumnFilter',
+      filter: 'date',
       valueFormatter: (params) => {
         if (!params.value) return '';
         const date = new Date(params.value);
@@ -150,7 +179,6 @@ export const ExampleDataGrid: React.FC = () => {
     sortable: true,
     filter: true,
     resizable: true,
-    floatingFilter: true,
   };
 
   return (
@@ -160,9 +188,7 @@ export const ExampleDataGrid: React.FC = () => {
       defaultColDef={defaultColDef}
       pagination={true}
       paginationPageSize={5}
-      rowSelection="multiple"
-      enableRangeSelection={true}
-      enableCharts={true}
+      rowSelection={{ mode: 'multiRow' }}
     />
   );
 };

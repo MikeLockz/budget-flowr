@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { generateId } from '../lib/id-utils';
 
 // Define the theme type
 export type Theme = 'light' | 'dark' | 'system';
@@ -36,8 +37,7 @@ interface Notification {
   autoClose?: boolean;
 }
 
-// Generate a unique ID for notifications
-const generateId = () => Math.random().toString(36).substring(2, 9);
+// Using generateId from id-utils.ts
 
 // Create the store with persistence
 export const useAppStore = create<AppState>()(
@@ -58,17 +58,20 @@ export const useAppStore = create<AppState>()(
       
       // Notifications
       notifications: [],
-      addNotification: (notification) => 
-        set((state) => ({
+      addNotification: (notification) => {
+        // Use the exported function so it can be mocked in tests
+        const id = generateId();
+        return set((state) => ({
           notifications: [
             ...state.notifications,
             {
-              id: generateId(),
+              id,
               createdAt: new Date(),
               ...notification,
             },
           ],
-        })),
+        }));
+      },
       dismissNotification: (id) =>
         set((state) => ({
           notifications: state.notifications.filter(

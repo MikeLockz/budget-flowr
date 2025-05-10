@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { init, getInstanceByDom } from 'echarts';
 import type { EChartsOption, ECharts } from 'echarts';
+import { formatDollarWholeNumber } from '@/lib/utils';
 
 interface EChartsProps {
   option: EChartsOption;
@@ -27,13 +28,18 @@ export const EChartsBase: React.FC<EChartsProps> = ({
   useEffect(() => {
     // Initialize chart
     let chart: ECharts | undefined;
+
+    const isTest = process.env.NODE_ENV === 'test';
+    const optionWithAnimation = isTest
+      ? { ...option, animation: false }
+      : option;
     
     if (chartRef.current) {
       chart = getInstanceByDom(chartRef.current) || 
               init(chartRef.current, theme);
       
-      // Apply options
-      chart.setOption(option, true);
+      // Apply options with animation disabled in test
+      chart.setOption(optionWithAnimation, true);
       
       // Handle loading state
       if (loading) {
@@ -60,7 +66,14 @@ export const EChartsBase: React.FC<EChartsProps> = ({
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
-      chart?.dispose();
+      if (chart) {
+        try {
+          chart.clear();
+          chart.dispose();
+        } catch {
+          // Ignore errors during dispose in test environment
+        }
+      }
     };
   }, [option, theme, loading, onChartReady]);
   
@@ -88,6 +101,20 @@ export const LineChart: React.FC<{
     title: title ? { text: title } : undefined,
     tooltip: {
       trigger: 'axis',
+      formatter: (params) => {
+        // params is an array of series data points
+        if (!Array.isArray(params)) return '';
+        const axisValue = (params[0] as any).axisValue || '';
+        let tooltipText = axisValue + '<br/>';
+        let total = 0;
+        params.forEach(p => {
+          const value = typeof p.data === 'number' ? p.data : 0;
+          tooltipText += `${p.seriesName}: ${formatDollarWholeNumber(value)}<br/>`;
+          total += value;
+        });
+        tooltipText += `<b>Total: ${formatDollarWholeNumber(total)}</b>`;
+        return tooltipText;
+      },
     },
     legend: {
       data: data.map(item => item.name),
@@ -134,6 +161,19 @@ export const BarChart: React.FC<{
       axisPointer: {
         type: 'shadow',
       },
+      formatter: (params) => {
+        if (!Array.isArray(params)) return '';
+        const axisValue = (params[0] as any).axisValue || '';
+        let tooltipText = axisValue + '<br/>';
+        let total = 0;
+        params.forEach(p => {
+          const value = typeof p.data === 'number' ? p.data : 0;
+          tooltipText += `${p.seriesName}: ${formatDollarWholeNumber(value)}<br/>`;
+          total += value;
+        });
+        tooltipText += `<b>Total: ${formatDollarWholeNumber(total)}</b>`;
+        return tooltipText;
+      },
     },
     legend: {
       data: data.map(item => item.name),
@@ -175,12 +215,16 @@ export const PieChart: React.FC<{
     title: title ? { text: title } : undefined,
     tooltip: {
       trigger: 'item',
-      formatter: '{a} <br/>{b}: {c} ({d}%)',
+      formatter: (params) => {
+        if (typeof params === 'object' && params !== null) {
+          const { seriesName, name, value, percent } = params as any;
+          return `${seriesName} <br/>${name}: ${formatDollarWholeNumber(value)} (${percent}%)`;
+        }
+        return '';
+      }
     },
     legend: {
-      orient: 'vertical',
-      left: 10,
-      data: data.map(item => item.name),
+      show: false,
     },
     series: [
       {

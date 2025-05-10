@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/app-store';
 import { Menu, X, Sun, Moon, Monitor } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { cn } from '../../lib/utils';
+import { cn } from "../../lib/utils";
 
 interface AppLayoutProps {
   children: React.ReactNode;
