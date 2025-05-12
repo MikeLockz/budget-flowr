@@ -104,7 +104,7 @@ export const LineChart: React.FC<{
       formatter: (params) => {
         // params is an array of series data points
         if (!Array.isArray(params)) return '';
-        const axisValue = (params[0] as any).axisValue || '';
+        const axisValue = (params[0] as { axisValue?: string }).axisValue || '';
         let tooltipText = axisValue + '<br/>';
         let total = 0;
         params.forEach(p => {
@@ -163,7 +163,7 @@ export const BarChart: React.FC<{
       },
       formatter: (params) => {
         if (!Array.isArray(params)) return '';
-        const axisValue = (params[0] as any).axisValue || '';
+        const axisValue = (params[0] as { axisValue?: string }).axisValue || '';
         let tooltipText = axisValue + '<br/>';
         let total = 0;
         params.forEach(p => {
@@ -217,7 +217,7 @@ export const PieChart: React.FC<{
       trigger: 'item',
       formatter: (params) => {
         if (typeof params === 'object' && params !== null) {
-          const { seriesName, name, value, percent } = params as any;
+          const { seriesName, name, value, percent } = params as { seriesName?: string; name?: string; value?: number; percent?: number };
           return `${seriesName} <br/>${name}: ${formatDollarWholeNumber(value)} (${percent}%)`;
         }
         return '';

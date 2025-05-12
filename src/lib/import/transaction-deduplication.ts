@@ -4,20 +4,23 @@ import { transactionRepository } from '@/lib/repositories';
 /**
  * Check if a transaction is a duplicate based on date, amount, and description.
  * @param transaction The transaction to check
- * @returns True if a duplicate exists, false otherwise
+ * @returns Object with isDuplicate flag and the existing transaction if found
  */
 export async function isDuplicateTransaction(transaction: {
   date: string;
   amount: number;
   description: string;
-}): Promise<boolean> {
+}): Promise<{ isDuplicate: boolean; existingTransaction?: TransactionType }> {
   // Use the compound index to efficiently check for duplicates
-  const duplicates = await db.transactions
+  const existingTransaction = await db.transactions
     .where('[date+amount+description]')
     .equals([transaction.date, transaction.amount, transaction.description])
-    .count();
-  
-  return duplicates > 0;
+    .first();
+
+  return {
+    isDuplicate: !!existingTransaction,
+    existingTransaction
+  };
 }
 
 /**
@@ -78,7 +81,7 @@ export async function removeDuplicateTransactions(): Promise<number> {
  */
 export async function mergeDuplicateTransactions(): Promise<number> {
   const duplicates = await findDuplicateTransactions();
-  
+
   // Merge the duplicate transactions
   for (const { original, duplicate } of duplicates) {
     // Create a merged transaction with the best information from both
@@ -93,13 +96,50 @@ export async function mergeDuplicateTransactions(): Promise<number> {
         ? duplicate.accountId
         : original.accountId
     };
-    
+
     // Update the original transaction
     await transactionRepository.update(merged);
-    
+
     // Remove the duplicate
     await transactionRepository.remove(duplicate.id);
   }
-  
+
   return duplicates.length;
+}
+
+/**
+ * Update an existing transaction with data from a new duplicate transaction.
+ * Only updates non-compound-index fields when they differ.
+ * @param existingTransaction The existing transaction in the database
+ * @param newTransaction The new transaction with potentially updated field values
+ * @returns The updated transaction
+ */
+export async function updateDuplicateTransaction(
+  existingTransaction: Transaction,
+  newTransaction: Partial<Transaction>
+): Promise<Transaction> {
+  // Fields that are part of the compound index and should NOT be updated
+  const compoundIndexFields = ['date', 'amount', 'description'];
+
+  // Create updated transaction object starting with existing transaction
+  const updatedTransaction: Transaction = { ...existingTransaction };
+
+  // Update each non-compound-index field if it exists in newTransaction and is different
+  for (const [key, value] of Object.entries(newTransaction)) {
+    // Skip updating compound index fields
+    if (compoundIndexFields.includes(key)) continue;
+
+    // Skip if the field doesn't exist in newTransaction
+    if (value === undefined) continue;
+
+    // Update field if value is different
+    if (existingTransaction[key as keyof Transaction] !== value) {
+      (updatedTransaction as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  // Save the updated transaction
+  await transactionRepository.update(updatedTransaction);
+
+  return updatedTransaction;
 }

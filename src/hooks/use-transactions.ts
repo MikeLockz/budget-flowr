@@ -56,7 +56,7 @@ export const useTransactionData = () => {
     }));
   }, [transactions, categories]);
 
-  const prepareCategoryChartData = () => {
+  const categoryChartData = useMemo(() => {
     const expenseMap = new Map<string, number>();
     categories.forEach(c => {
       expenseMap.set(c.name, 0);
@@ -65,8 +65,8 @@ export const useTransactionData = () => {
 
     transactionsWithCategoryName.forEach(t => {
       // Consider both 'expense' and expense-like types for category chart data
-      if (t.type === 'expense' || 
-          t.type === 'True Expense' || 
+      if (t.type === 'expense' ||
+          t.type === 'True Expense' ||
           t.type === 'Capital Transfer') {
         const categoryName = expenseMap.has(t.categoryName) ? t.categoryName : 'Uncategorized';
         expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + t.amount);
@@ -90,9 +90,7 @@ export const useTransactionData = () => {
       barChartData,
       pieChartData,
     };
-  };
-
-  const categoryChartData = useMemo(() => prepareCategoryChartData(), [transactionsWithCategoryName, categories]);
+  }, [transactionsWithCategoryName, categories]);
 
   return {
     transactions: transactionsWithCategoryName,
