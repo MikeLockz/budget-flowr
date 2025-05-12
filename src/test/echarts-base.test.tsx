@@ -32,8 +32,8 @@ describe('EChartsBase component', () => {
     };
     
     // Configure init to return the mock chart
-    (echarts.init as Mock).mockReturnValue(mockChart);
-    (echarts.getInstanceByDom as Mock).mockReturnValue(null);
+    (echarts.init as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockChart);
+    (echarts.getInstanceByDom as unknown as ReturnType<typeof vi.fn>).mockReturnValue(null);
   });
   
   it('renders with required props', () => {

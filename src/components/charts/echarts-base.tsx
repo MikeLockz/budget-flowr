@@ -218,7 +218,7 @@ export const PieChart: React.FC<{
       formatter: (params) => {
         if (typeof params === 'object' && params !== null) {
           const { seriesName, name, value, percent } = params as { seriesName?: string; name?: string; value?: number; percent?: number };
-          return `${seriesName} <br/>${name}: ${formatDollarWholeNumber(value)} (${percent}%)`;
+          return `${seriesName || ''} <br/>${name || ''}: ${formatDollarWholeNumber(value || 0)} (${percent || 0}%)`;
         }
         return '';
       }
