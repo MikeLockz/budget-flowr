@@ -37,53 +37,91 @@ export const prepareMonthlyChartData = (transactions: Array<{ date: string; type
     };
   }
 
-  // Extract unique years from transactions
-  const years = Array.from(new Set(
-    transactions.map(t => new Date(t.date).getFullYear())
-  )).sort();
+  // Find earliest and latest transaction dates
+  let earliestDate: Date | null = null;
+  let latestDate: Date | null = null;
 
-  // If no valid years, return default data
-  if (years.length === 0) {
+  transactions.forEach(t => {
+    const date = new Date(t.date);
+    if (!earliestDate || date < earliestDate) {
+      earliestDate = date;
+    }
+    if (!latestDate || date > latestDate) {
+      latestDate = date;
+    }
+  });
+
+  // If we couldn't determine valid dates, return default data
+  if (!earliestDate || !latestDate) {
     return {
       months: monthNames,
       lineChartData: [
-        { name: 'Income', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-        { name: 'Expenses', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+        { name: 'Income', data: new Array(12).fill(0) },
+        { name: 'Expenses', data: new Array(12).fill(0) },
       ],
     };
   }
 
-  // Create consecutive month labels with years
+  // Generate consecutive months only between earliest and latest dates
   const consecutiveMonths: string[] = [];
-  years.forEach(year => {
-    monthNames.forEach(month => {
-      consecutiveMonths.push(`${month} ${year}`);
-    });
-  });
+  const incomeData: number[] = [];
+  const expenseData: number[] = [];
 
-  // Initialize data arrays for all months across all years
-  const totalMonths = years.length * 12;
-  const incomeData = new Array(totalMonths).fill(0);
-  const expenseData = new Array(totalMonths).fill(0);
+  // Set to first day of the month for earliest date
+  const startDate = new Date(earliestDate);
+  startDate.setDate(1);
+
+  // Set to first day of the month for latest date
+  const endDate = new Date(latestDate);
+  endDate.setDate(1);
+
+  // Create a map to store transaction totals by month
+  const incomeByMonth = new Map<string, number>();
+  const expenseByMonth = new Map<string, number>();
+
+  // Generate all months between start and end dates
+  const currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const monthKey = `${year}-${month}`;
+    const monthLabel = `${monthNames[month]} ${year}`;
+
+    consecutiveMonths.push(monthLabel);
+    incomeByMonth.set(monthKey, 0);
+    expenseByMonth.set(monthKey, 0);
+
+    // Move to next month
+    currentDate.setMonth(currentDate.getMonth() + 1);
+  }
 
   // Populate data arrays
   transactions.forEach(t => {
     const date = new Date(t.date);
     const year = date.getFullYear();
     const month = date.getMonth();
-    
-    // Find the index in our consecutive array
-    const yearIndex = years.indexOf(year);
-    if (yearIndex === -1) return; // Skip if year not in our range
-    
-    const dataIndex = yearIndex * 12 + month;
-    
+    const monthKey = `${year}-${month}`;
+
     if (t.type === 'Capital Inflow') {
-      incomeData[dataIndex] += t.amount;
+      incomeByMonth.set(monthKey, (incomeByMonth.get(monthKey) || 0) + t.amount);
     } else if (t.type === 'True Expense' || t.type === 'Capital Expense') {
-      expenseData[dataIndex] += t.amount;
+      expenseByMonth.set(monthKey, (expenseByMonth.get(monthKey) || 0) + t.amount);
     }
   });
+
+  // Convert maps to arrays in the correct order
+  currentDate.setTime(startDate.getTime());
+  while (currentDate <= endDate) {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const monthKey = `${year}-${month}`;
+
+    incomeData.push(incomeByMonth.get(monthKey) || 0);
+    expenseData.push(expenseByMonth.get(monthKey) || 0);
+
+    // Move to next month
+    currentDate.setMonth(currentDate.getMonth() + 1);
+  }
 
   return {
     months: consecutiveMonths,
