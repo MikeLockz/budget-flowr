@@ -19,13 +19,43 @@ describe('Database Versioning', () => {
   let testDB: TestBudgetFlowrDB;
 
   beforeEach(async () => {
-    // Create a new test database instance
-    testDB = new TestBudgetFlowrDB();
-    // Delete any existing test database before opening
+    // Delete any existing test database before creating a new one
     await Dexie.delete(TEST_DB_NAME);
+
+    // Create a completely fresh test database instance with defined schema
+    testDB = new TestBudgetFlowrDB();
+
     // Force the database name by monkey-patching the _dbName property
     // @ts-expect-error Accessing internal Dexie property for testing
     testDB._dbName = TEST_DB_NAME;
+
+    // Explicitly define all database versions to ensure consistency across environments
+    testDB.version(1).stores({
+      transactions: 'id, date, categoryId, type, status',
+      categories: 'id, name, parentId',
+      accounts: 'id, name, type',
+      assets: 'id, name, purchaseDate, categoryId',
+      sinkingFunds: 'id, name, targetDate, associatedAssetId',
+    });
+
+    testDB.version(2).stores({
+      transactions: 'id, date, categoryId, type, status, accountId',
+    });
+
+    testDB.version(3).stores({
+      fieldMappings: 'id, name, sourceIdentifier'
+    });
+
+    testDB.version(4).stores({
+      transactions: 'id, date, categoryId, type, status, accountId, [date+amount+description]',
+      imports: 'id, date, fileName, totalCount, importedCount, duplicateCount'
+    });
+
+    testDB.version(5).stores({
+      imports: 'id, date, fileName, totalCount, importedCount, duplicateCount, skippedCount'
+    });
+
+    // Open the database with the explicitly defined schema
     await testDB.open();
   });
 
@@ -38,9 +68,11 @@ describe('Database Versioning', () => {
   });
 
   it('should initialize with the correct version', async () => {
-    // The database version should be either 4 or 5, depending on environment
-    // Local environment might have version 5, while CI might have version 4
-    expect([4, 5]).toContain(testDB.verno);
+    // The current version should be 5 based on our schema definition in db.ts
+    expect(testDB.verno).toBe(5);
+
+    // Log database version in case of future issues
+    console.log(`Test database version: ${testDB.verno}`);
   });
 
   it('should have the correct schema for version 2', async () => {
