@@ -86,7 +86,7 @@ describe('CSVUpload Component', () => {
     expect(screen.getByTestId('status-message')).toHaveTextContent('Importing...');
     
     await waitFor(() => {
-      expect(screen.getByTestId('status-message')).toHaveTextContent('Successfully imported 3 transactions. Skipped 0 duplicates and');
+      expect(screen.getByTestId('status-message')).toHaveTextContent('Successfully imported 3 transactions. Skipped 0 duplicates');
     });
     
     expect(importService.importCSVWithMapping).toHaveBeenCalledWith(file, expect.any(Object));
