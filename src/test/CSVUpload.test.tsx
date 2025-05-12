@@ -51,9 +51,10 @@ describe('CSVUpload Component', () => {
   });
   
   it('shows success message after successful import', async () => {
-    (importService.importCSVWithMapping as unknown as Mock).mockResolvedValue({ 
-      insertedIds: ['id1', 'id2', 'id3'], 
-      duplicateCount: 0 
+    (importService.importCSVWithMapping as unknown as Mock).mockResolvedValue({
+      insertedIds: ['id1', 'id2', 'id3'],
+      duplicateCount: 0,
+      skippedCount: 0
     });
     (importService.parseCSVForMapping as unknown as Mock).mockResolvedValue({
       headers: ['date', 'description', 'amount', 'type'],
