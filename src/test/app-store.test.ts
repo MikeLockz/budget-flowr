@@ -413,7 +413,6 @@ describe('App Store', () => {
       // Create a test store that will hydrate from our mocked localStorage
       const testStore = create<TestState>()(
         persist(
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           (_set) => ({
             theme: 'system',
             gridPageSize: 10,
