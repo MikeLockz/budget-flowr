@@ -113,22 +113,22 @@ describe('Dashboard utility functions', () => {
   describe('prepareMonthlyChartData', () => {
     it('returns the expected data structure for empty transactions', () => {
       const result = prepareMonthlyChartData();
-      
+
       // Check months array
       expect(result.months).toEqual([
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
       ]);
-      
+
       // Check line chart data structure
       expect(result.lineChartData).toHaveLength(2);
       expect(result.lineChartData[0].name).toBe('Income');
       expect(result.lineChartData[1].name).toBe('Expenses');
-      
+
       // Check data arrays
       expect(result.lineChartData[0].data).toHaveLength(12);
       expect(result.lineChartData[1].data).toHaveLength(12);
-      
+
       // Check some sample values
       expect(result.lineChartData[0].data[0]).toBe(2800); // January income
       expect(result.lineChartData[1].data[1]).toBe(2100); // February expenses
@@ -155,19 +155,18 @@ describe('Dashboard utility functions', () => {
           status: 'completed',
         }
       ];
-      
+
       const result = prepareMonthlyChartData(singleYearTransactions);
-      
-      // Check months array includes year
+
+      // Check months array includes year and only has months with transactions
       expect(result.months).toEqual([
-        'Jan 2025', 'Feb 2025', 'Mar 2025', 'Apr 2025', 'May 2025', 'Jun 2025', 
-        'Jul 2025', 'Aug 2025', 'Sep 2025', 'Oct 2025', 'Nov 2025', 'Dec 2025'
+        'Jan 2025', 'Feb 2025'
       ]);
-      
+
       // Check data arrays
-      expect(result.lineChartData[0].data).toHaveLength(12);
-      expect(result.lineChartData[1].data).toHaveLength(12);
-      
+      expect(result.lineChartData[0].data).toHaveLength(2);
+      expect(result.lineChartData[1].data).toHaveLength(2);
+
       // Check specific values
       expect(result.lineChartData[0].data[0]).toBe(3000); // January 2025 income
       expect(result.lineChartData[1].data[1]).toBe(1200); // February 2025 expense
@@ -212,25 +211,25 @@ describe('Dashboard utility functions', () => {
           status: 'completed',
         }
       ];
-      
+
       const result = prepareMonthlyChartData(multiYearTransactions);
-      
-      // Check months array includes both years consecutively
-      expect(result.months.length).toBe(24); // 12 months * 2 years
-      expect(result.months[0]).toBe('Jan 2024');
-      expect(result.months[11]).toBe('Dec 2024');
-      expect(result.months[12]).toBe('Jan 2025');
-      expect(result.months[23]).toBe('Dec 2025');
-      
+
+      // With the new implementation, we should have exactly 3 months
+      // (Dec 2024, Jan 2025, Feb 2025)
+      expect(result.months.length).toBe(3);
+      expect(result.months[0]).toBe('Dec 2024');
+      expect(result.months[1]).toBe('Jan 2025');
+      expect(result.months[2]).toBe('Feb 2025');
+
       // Check data arrays length
-      expect(result.lineChartData[0].data.length).toBe(24); // 12 months * 2 years
-      expect(result.lineChartData[1].data.length).toBe(24);
-      
+      expect(result.lineChartData[0].data.length).toBe(3);
+      expect(result.lineChartData[1].data.length).toBe(3);
+
       // Check specific values
-      expect(result.lineChartData[0].data[11]).toBe(5000); // December 2024 income
-      expect(result.lineChartData[1].data[11]).toBe(800);  // December 2024 expense
-      expect(result.lineChartData[0].data[12]).toBe(3000); // January 2025 income
-      expect(result.lineChartData[1].data[13]).toBe(1200); // February 2025 expense
+      expect(result.lineChartData[0].data[0]).toBe(5000); // December 2024 income
+      expect(result.lineChartData[1].data[0]).toBe(800);  // December 2024 expense
+      expect(result.lineChartData[0].data[1]).toBe(3000); // January 2025 income
+      expect(result.lineChartData[1].data[2]).toBe(1200); // February 2025 expense
     });
   });
 
