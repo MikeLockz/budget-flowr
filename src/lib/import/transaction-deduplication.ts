@@ -134,8 +134,8 @@ export async function updateDuplicateTransaction(
 
     // Update field if value is different
     if (existingTransaction[key as keyof Transaction] !== value) {
-      // Convert to unknown first to avoid type issues
-      (updatedTransaction as unknown as Record<string, unknown>)[key] = value;
+      // Update the field with type safety
+      updatedTransaction[key as keyof Transaction] = value as Transaction[keyof Transaction];
     }
   }
 
