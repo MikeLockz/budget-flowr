@@ -5,7 +5,6 @@ import { CalendarHeatmap } from '../components/charts/CalendarHeatmap';
 import { TransactionsGrid } from '@/components/data-grid/transactions-grid';
 import { useTransactionData } from '@/hooks/use-transactions';
 import { formatCurrency } from '@/lib/utils';
-import { CSVUpload } from '@/components/import/CSVUpload';
 import { useFilterContext } from '@/contexts/FilterContext';
 
 export const calculateTotalIncome = (transactions: Array<{ type: string; amount: number }> = []) => {
@@ -241,8 +240,6 @@ export const Dashboard = () => {
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <div className="flex space-x-2">
           <Button onClick={resetFilters}>Reset Filters</Button>
-          <Button>Add Transaction</Button>
-          <CSVUpload />
         </div>
       </div>
 

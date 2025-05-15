@@ -17,6 +17,7 @@ export interface Transaction {
 export interface ImportSession {
   id: string;
   date: string;
+  timestamp?: string; // For compatibility with code that expects timestamp
   fileName: string;
   totalCount: number;
   importedCount: number;

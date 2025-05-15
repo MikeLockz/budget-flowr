@@ -66,6 +66,10 @@ export class ImportRepository extends BaseRepository<ImportSession, string> {
   constructor() {
     super(db.imports);
   }
+
+  async getImportHistory(): Promise<ImportSession[]> {
+    return this.table.orderBy('timestamp').reverse().toArray();
+  }
 }
 
 // Export instances for use
@@ -74,4 +78,4 @@ export const categoryRepository = new CategoryRepository();
 export const accountRepository = new AccountRepository();
 export const assetRepository = new AssetRepository();
 export const sinkingFundRepository = new SinkingFundRepository();
-export const importRepository = new ImportRepository();
+export const importRepo = new ImportRepository();

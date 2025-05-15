@@ -1,31 +1,61 @@
 import React, { useState } from 'react';
 import {
-  parseCSVForMapping,
-  previewMappedTransactions,
-  importCSVWithMapping
+  parseCSVForMapping
 } from '@/lib/import/import-service';
-import { queryClient } from '@/lib/query-client';
-import { FieldMapping } from '@/lib/import/field-mapping-types';
-import { Transaction } from '@/lib/db';
-import { FieldMappingUI } from './FieldMappingUI';
-import { TransactionPreview } from './TransactionPreview';
+import { Button } from '@/components/ui/button';
+import { Upload, FileUp } from 'lucide-react';
 
-export const CSVUpload: React.FC = () => {
-  const [file, setFile] = useState<File | null>(null);
+interface CSVUploadProps {
+  onFileSelected: (file: File) => void;
+  onParseCsv: (data: any) => void;
+  initialFile?: File | null;
+}
+
+export const CSVUpload: React.FC<CSVUploadProps> = ({
+  onFileSelected,
+  onParseCsv,
+  initialFile = null
+}) => {
+  const [file, setFile] = useState<File | null>(initialFile);
   const [status, setStatus] = useState<string>('');
-  const [step, setStep] = useState<'upload' | 'mapping' | 'preview' | 'importing'>('upload');
-  const [csvData, setCsvData] = useState<{ headers: string[]; sampleData: Record<string, string>[]; allData: Record<string, string>[] } | null>(null);
-  const [mapping, setMapping] = useState<FieldMapping | null>(null);
-  const [previewData, setPreviewData] = useState<{
-    rawData: Record<string, string>[];
-    mappedTransactions: Transaction[];
-  } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
-      setFile(event.target.files[0]);
+      const selectedFile = event.target.files[0];
+      setFile(selectedFile);
+      onFileSelected(selectedFile);
       setStatus('');
-      setStep('upload');
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFile = e.dataTransfer.files[0];
+      if (droppedFile.type === 'text/csv' || droppedFile.name.endsWith('.csv')) {
+        setFile(droppedFile);
+        onFileSelected(droppedFile);
+        setStatus('');
+      } else {
+        setStatus('Please drop a CSV file.');
+      }
     }
   };
 
@@ -35,145 +65,101 @@ export const CSVUpload: React.FC = () => {
       return;
     }
 
+    setIsProcessing(true);
     setStatus('Parsing CSV...');
+    
     try {
       const result = await parseCSVForMapping(file);
-      setCsvData(result);
-
-      // Auto-detect initial mapping
-      const initialMapping = result.headers ? {
-        mappings: {
-          date: result.headers.find((h: string) => h.toLowerCase().includes('date')) || null,
-          description: result.headers.find((h: string) => h.toLowerCase().includes('desc') || h.toLowerCase().includes('memo')) || null,
-          amount: result.headers.find((h: string) => h.toLowerCase().includes('amount')) || null,
-          type: result.headers.find((h: string) => h.toLowerCase().includes('type')) || null,
-          categoryId: null,
-          status: null,
-          accountId: null
-        },
-        options: {
-          dateFormat: 'MM/DD/YYYY',
-          negativeAmountIsExpense: true,
-          invertAmount: false
-        }
-      } : null;
-      setMapping(initialMapping);
-
-      // Generate preview with initial mapping
-      if (result && initialMapping) {
-        const preview = previewMappedTransactions(result, initialMapping);
-        setPreviewData(preview);
-      }
-
-      setStep('mapping');
+      
+      // Auto-detect initial mapping will be handled by parent component
+      onParseCsv(result);
       setStatus('');
-    } catch {
+    } catch (error) {
       setStatus('Failed to parse CSV file. Please check the file format and try again.');
-    }
-  };
-
-  const handleMappingChange = (newMapping: FieldMapping) => {
-    // Set the mapping state
-    setMapping(newMapping);
-
-    // Update preview when mapping changes
-    if (csvData) {
-      const preview = previewMappedTransactions(csvData, newMapping);
-      setPreviewData(preview);
-    }
-  };
-
-  const handleImport = async () => {
-    if (!file || !mapping) {
-      return;
-    }
-
-    setStep('importing');
-    setStatus('Importing...');
-
-    try {
-      const result = await importCSVWithMapping(file, mapping);
-      setStatus(`Successfully imported ${result.insertedIds.length} transactions. Skipped ${result.duplicateCount} duplicates and ${result.skippedCount} rows with missing critical data.`);
-      setFile(null);
-      setMapping(null);
-      setPreviewData(null);
-      setStep('upload');
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    } catch {
-      setStatus('Failed to import CSV file. Please check the file and try again.');
-      setStep('mapping');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   return (
-    <div className="p-4 border rounded-md max-w-4xl">
-      {step === 'upload' && (
-        <>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleFileChange}
-            className="mb-2"
-            data-testid="file-input"
-          />
-          <button
+    <div className="space-y-6">
+      <div 
+        className={`border-2 border-dashed rounded-lg p-8 text-center ${dragActive ? 'border-primary bg-primary/5' : 'border-gray-300'}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <div className="p-3 rounded-full bg-primary/10">
+            <Upload className="w-8 h-8 text-primary" />
+          </div>
+          
+          <div className="space-y-1">
+            <p className="text-sm font-medium">
+              {file ? file.name : 'Drag and drop your CSV file here'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Supported format: CSV
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <label 
+              className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium cursor-pointer hover:bg-primary/90"
+            >
+              Browse Files
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+                className="hidden"
+                data-testid="file-input"
+              />
+            </label>
+            
+            {file && (
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setFile(null);
+                  onFileSelected(null as unknown as File);
+                }}
+                className="text-sm"
+              >
+                Remove
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {file && (
+        <div className="flex justify-center">
+          <Button
             onClick={handleParseCsv}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={isProcessing}
+            className="mx-auto"
             data-testid="parse-button"
           >
-            Parse CSV
-          </button>
-          {status && <p className="mt-2 text-sm text-gray-700" data-testid="status-message">{status}</p>}
-        </>
+            {isProcessing ? (
+              <>Processing...</>
+            ) : (
+              <>
+                <FileUp className="w-4 h-4 mr-2" />
+                Parse CSV
+              </>
+            )}
+          </Button>
+        </div>
       )}
-
-      {step === 'mapping' && mapping && csvData && (
-        <>
-          <FieldMappingUI
-            headers={csvData.headers}
-            onMappingChange={handleMappingChange}
-            initialMapping={mapping}
-          />
-          {status && <p className="mt-2 text-sm text-gray-700" data-testid="status-message">{status}</p>}
-          <button
-            onClick={() => setStep('preview')}
-            className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            data-testid="preview-button"
-          >
-            Preview Transactions
-          </button>
-          <button
-            onClick={() => setStep('upload')}
-            className="mt-4 ml-4 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-            data-testid="back-button"
-          >
-            Back
-          </button>
-        </>
-      )}
-
-      {step === 'preview' && previewData && (
-        <>
-          <TransactionPreview previewData={previewData} />
-          <button
-            onClick={handleImport}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            data-testid="import-button"
-          >
-            Import Transactions
-          </button>
-          <button
-            onClick={() => setStep('mapping')}
-            className="mt-4 ml-4 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-            data-testid="back-button"
-          >
-            Back
-          </button>
-        </>
-      )}
-
-      {step === 'importing' && (
-        <p className="mt-2 text-sm text-gray-700" data-testid="status-message">Importing...</p>
+      
+      {status && (
+        <p 
+          className={`text-sm text-center ${status.includes('Failed') ? 'text-red-500' : 'text-muted-foreground'}`}
+          data-testid="status-message"
+        >
+          {status}
+        </p>
       )}
     </div>
   );

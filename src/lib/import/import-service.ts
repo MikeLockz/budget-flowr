@@ -1,5 +1,5 @@
 import { ParsedCSVData } from './csv-parser';
-import { transactionRepository, categoryRepository, importRepository } from '@/lib/repositories';
+import { transactionRepository, categoryRepository, importRepo } from '@/lib/repositories';
 import { FieldMapping, PreviewData } from './field-mapping-types';
 import { applyMapping, generatePreview } from './field-mapping-service';
 import { generateUUID, ImportSession } from '@/lib/db';
@@ -80,7 +80,14 @@ export function previewMappedTransactions(
   csvData: { headers: string[]; sampleData: ParsedCSVData[]; allData: ParsedCSVData[] },
   mapping: FieldMapping
 ): PreviewData {
-  return generatePreview(csvData.sampleData, mapping);
+  const preview = generatePreview(csvData.sampleData, mapping);
+  
+  // Add the mapping and a reference to the file if available
+  return {
+    ...preview,
+    mapping,
+    file: csvData.allData !== undefined ? {} as File : undefined, // Since we don't have the file object here
+  };
 }
 
 
@@ -169,7 +176,7 @@ export async function importCSVWithMapping(
     importSession.updatedCount = updatedCount;
 
     // Save the import session
-    await importRepository.add(importSession);
+    await importRepo.add(importSession);
 
     return { insertedIds, duplicateCount, updatedCount, skippedCount: skippedRows.length };
   } catch (error) {

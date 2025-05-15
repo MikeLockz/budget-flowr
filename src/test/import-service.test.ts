@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import * as importService from '../lib/import/import-service';
 import * as transactionMapper from '../lib/import/transaction-mapper';
-import { transactionRepository, importRepository } from '../lib/repositories';
+import { transactionRepository, importRepo } from '../lib/repositories';
 
 vi.mock('../lib/import/import-service', () => ({
   parseCSVForMapping: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock('../lib/repositories', () => ({
     add: vi.fn(),
     update: vi.fn()
   },
-  importRepository: {
+  importRepo: {
     add: vi.fn()
   },
   categoryRepository: {
@@ -73,7 +73,7 @@ describe('Import Service', () => {
         insertedIds.push(id);
       }
       
-      await importRepository.add({
+      await importRepo.add({
         id: 'import-1',
         date: new Date().toISOString().split('T')[0],
         fileName: file.name,
@@ -91,7 +91,7 @@ describe('Import Service', () => {
     expect(importService.parseCSVForMapping).toHaveBeenCalledWith(mockFile);
     expect(transactionMapper.mapToTransactions).toHaveBeenCalled();
     expect(transactionRepository.add).toHaveBeenCalledTimes(2);
-    expect(importRepository.add).toHaveBeenCalled();
+    expect(importRepo.add).toHaveBeenCalled();
     expect(result.insertedIds).toEqual(['inserted-id-1', 'inserted-id-2']);
     expect(result.duplicateCount).toBe(0);
     expect(result.updatedCount).toBe(0);
@@ -184,7 +184,7 @@ describe('Import Service', () => {
         }
       }
       
-      await importRepository.add({
+      await importRepo.add({
         id: 'import-1',
         date: new Date().toISOString().split('T')[0],
         fileName: file.name,
@@ -203,7 +203,7 @@ describe('Import Service', () => {
     expect(transactionMapper.mapToTransactions).toHaveBeenCalled();
     expect(transactionRepository.add).toHaveBeenCalledTimes(2); // Only 2 calls, not 3
     expect(transactionRepository.update).toHaveBeenCalledTimes(1); // Updated 1 transaction
-    expect(importRepository.add).toHaveBeenCalled();
+    expect(importRepo.add).toHaveBeenCalled();
     expect(result.insertedIds).toEqual(['inserted-id-1', 'inserted-id-3']);
     expect(result.duplicateCount).toBe(1); // One duplicate detected
     expect(result.updatedCount).toBe(1); // One duplicate updated

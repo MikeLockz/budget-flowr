@@ -25,6 +25,8 @@ export interface PreviewData {
   rawData: Record<string, string>[];  // Original CSV data (first few rows)
   mappedTransactions: Transaction[];  // Transactions after mapping
   skippedRows?: Record<string, string>[]; // Rows that would be skipped
+  mapping?: FieldMapping;            // The mapping used to generate the preview
+  file?: File;                       // The CSV file being imported
 }
 
 // Import Transaction type from db

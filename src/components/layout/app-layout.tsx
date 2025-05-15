@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/app-store';
-import { Menu, X, Sun, Moon, Monitor } from 'lucide-react';
+import { Menu, X, Sun, Moon, Monitor, Upload, BarChart } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { cn } from "../../lib/utils";
+import { Link, useRouter } from '@tanstack/react-router';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { theme, setTheme, sidebarOpen, setSidebarOpen } = useAppStore();
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   // After mounting, we have access to the window object
   useEffect(() => {
@@ -46,6 +48,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [setSidebarOpen]);
 
+  // Get the current route path
+  const currentPath = router.state.location.pathname;
+
   if (!mounted) {
     // Return a placeholder during SSR
     return <div className="min-h-screen bg-background" />;
@@ -79,12 +84,16 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           )}
         >
           <nav className="flex flex-col gap-2">
-            <a
-              href="#"
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium bg-secondary"
+            <Link
+              to="/"
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                currentPath === "/" ? "bg-secondary" : "hover:bg-secondary/50"
+              )}
             >
+              <BarChart className="h-4 w-4" />
               Dashboard
-            </a>
+            </Link>
             <a
               href="#"
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary/50"
@@ -103,6 +112,22 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             >
               Budget
             </a>
+
+            {/* Utilities Section Heading */}
+            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground mt-4">
+              UTILITIES
+            </div>
+
+            <Link
+              to="/import"
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                currentPath.startsWith("/import") ? "bg-secondary" : "hover:bg-secondary/50"
+              )}
+            >
+              <Upload className="h-4 w-4" />
+              Import
+            </Link>
             <a
               href="#"
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary/50"

@@ -1,154 +1,179 @@
 import React from 'react';
 import { PreviewData } from '@/lib/import/field-mapping-types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { importCSVWithMapping } from '@/lib/import/import-service';
+import { queryClient } from '@/lib/query-client';
+import { formatCurrency } from '@/lib/utils';
+import { AlertTriangle } from 'lucide-react';
 
 interface TransactionPreviewProps {
   previewData: PreviewData;
+  onImportComplete?: (result: any) => void;
 }
 
-export const TransactionPreview: React.FC<TransactionPreviewProps> = ({ previewData }) => {
-  const { rawData, mappedTransactions, skippedRows } = previewData;
+export const TransactionPreview: React.FC<TransactionPreviewProps> = ({ 
+  previewData,
+  onImportComplete 
+}) => {
+  const { rawData, mappedTransactions, skippedRows, mapping, file } = previewData;
+  const [importing, setImporting] = React.useState(false);
+
+  const handleImport = async () => {
+    if (!mapping || !file) return;
+
+    setImporting(true);
+    try {
+      const result = await importCSVWithMapping(file, mapping);
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      if (onImportComplete) {
+        onImportComplete(result);
+      }
+    } catch (error) {
+      console.error('Import failed:', error);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Transaction Preview</h2>
-
-      {/* Original CSV Data */}
-      <div className="border p-4 rounded-md">
-        <h3 className="font-medium mb-4">Original CSV Data</h3>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {rawData && rawData.length > 0 ? Object.keys(rawData[0]).map(header => (
-                  <th
-                    key={header}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    {header}
-                  </th>
-                )) : null}
-              </tr>
-            </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {rawData && rawData.map((row, index) => (
-                  <tr key={index}>
-                    {Object.values(row).map((value, i) => (
-                      <td key={i} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {value}
+      <Tabs defaultValue="mapped" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="mapped">Mapped Transactions ({mappedTransactions?.length || 0})</TabsTrigger>
+          <TabsTrigger value="original">Original CSV Data</TabsTrigger>
+          {skippedRows && skippedRows.length > 0 && (
+            <TabsTrigger value="skipped" className="text-amber-600">
+              Skipped Rows ({skippedRows.length})
+            </TabsTrigger>
+          )}
+        </TabsList>
+        
+        <TabsContent value="mapped" className="space-y-4 pt-4">
+          <div className="rounded-md border">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50 font-medium">
+                    <th className="px-4 py-3 text-left">Date</th>
+                    <th className="px-4 py-3 text-left">Description</th>
+                    <th className="px-4 py-3 text-right">Amount</th>
+                    <th className="px-4 py-3 text-left">Type</th>
+                    <th className="px-4 py-3 text-left">Category</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Account</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mappedTransactions && mappedTransactions.map((transaction, index) => (
+                    <tr key={index} className="border-b hover:bg-muted/50">
+                      <td className="px-4 py-3 w-28">{transaction.date}</td>
+                      <td className="px-4 py-3 max-w-[300px] truncate">{transaction.description}</td>
+                      <td className={`px-4 py-3 text-right ${
+                        transaction.type.includes('Expense') 
+                          ? 'text-red-600' 
+                          : 'text-green-600'
+                      }`}>
+                        {formatCurrency(transaction.amount)}
                       </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Mapped Transactions */}
-      <div className="border p-4 rounded-md">
-        <h3 className="font-medium mb-4">Mapped Transactions</h3>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Account
-                </th>
-              </tr>
-            </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {mappedTransactions && mappedTransactions.map((transaction, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.description}
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                      ['expense', 'True Expense', 'Capital Transfer', 'Reversed Capital Expense'].includes(transaction.type) 
-                        ? 'text-red-500' 
-                        : 'text-green-500'
-                    }`}>
-                      {['expense', 'True Expense', 'Capital Transfer', 'Reversed Capital Expense'].includes(transaction.type) 
-                        ? '-' 
-                        : '+'}{transaction.amount.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.type}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.categoryId}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.status}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {transaction.accountId}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Skipped Rows */}
-      {skippedRows && skippedRows.length > 0 && (
-        <div className="border p-4 rounded-md bg-red-50">
-          <h3 className="font-medium mb-4 text-red-700">Skipped Rows (Missing Critical Fields)</h3>
-          <p className="mb-2 text-sm text-gray-700">
-            The following rows will be skipped during import because they are missing critical fields (date, amount, or account):
-          </p>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {skippedRows.length > 0 ? Object.keys(skippedRows[0]).map(header => (
-                    <th
-                      key={header}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {header}
-                    </th>
-                  )) : null}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {skippedRows.map((row, index) => (
-                  <tr key={index}>
-                    {Object.values(row).map((value, i) => (
-                      <td key={i} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {value}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <td className="px-4 py-3">{transaction.type}</td>
+                      <td className="px-4 py-3">{transaction.categoryId || 'Uncategorized'}</td>
+                      <td className="px-4 py-3">{transaction.status}</td>
+                      <td className="px-4 py-3">{transaction.accountId || 'Default'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+
+          {onImportComplete && (
+            <div className="flex justify-end">
+              <Button 
+                onClick={handleImport} 
+                disabled={importing}
+              >
+                {importing ? 'Importing...' : 'Import Transactions'}
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="original" className="space-y-4 pt-4">
+          <div className="rounded-md border">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50 font-medium">
+                    {rawData && rawData.length > 0 ? Object.keys(rawData[0]).map(header => (
+                      <th key={header} className="px-4 py-3 text-left">
+                        {header}
+                      </th>
+                    )) : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rawData && rawData.map((row, index) => (
+                    <tr key={index} className="border-b hover:bg-muted/50">
+                      {Object.values(row).map((value, i) => (
+                        <td key={i} className="px-4 py-3">
+                          {value}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+        
+        {skippedRows && skippedRows.length > 0 && (
+          <TabsContent value="skipped" className="space-y-4 pt-4">
+            <Card className="border-amber-300">
+              <CardHeader className="bg-amber-50 text-amber-800">
+                <div className="flex items-center space-x-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  <CardTitle className="text-amber-800">Skipped Rows</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <p className="mb-4 text-muted-foreground text-sm">
+                  The following rows will be skipped during import because they are missing critical fields (date, amount, or description):
+                </p>
+                
+                <div className="rounded-md border border-amber-200">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-amber-50/50 font-medium">
+                          {skippedRows.length > 0 ? Object.keys(skippedRows[0]).map(header => (
+                            <th key={header} className="px-4 py-3 text-left text-amber-800">
+                              {header}
+                            </th>
+                          )) : null}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {skippedRows.map((row, index) => (
+                          <tr key={index} className="border-b hover:bg-amber-50/30">
+                            {Object.values(row).map((value, i) => (
+                              <td key={i} className="px-4 py-3 text-amber-900">
+                                {value}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 };
