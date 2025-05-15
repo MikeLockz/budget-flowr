@@ -21,7 +21,8 @@ vi.mock('ag-grid-community', () => ({
   NumberFilterModule: {},
   DateFilterModule: {},
   CustomFilterModule: {},
-  ColumnAutoSizeModule: {}
+  ColumnAutoSizeModule: {},
+  TextEditorModule: {}
 }));
 
 // Sample data for testing

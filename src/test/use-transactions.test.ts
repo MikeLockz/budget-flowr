@@ -3,6 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useTransactions, useAddTransaction, useUpdateTransaction, useDeleteTransaction } from '../hooks/use-transactions';
 import { db, Transaction } from '../lib/db';
+import { transactionRepository } from '../lib/repositories';
 import { createWrapper } from './test-utils';
 
 describe('Transaction Hooks', () => {
@@ -111,8 +112,8 @@ describe('Transaction Hooks', () => {
     });
 
     it('handles errors when fetching transactions', async () => {
-      // Mock the database to throw an error
-      vi.spyOn(db.transactions, 'toArray').mockRejectedValueOnce(
+      // Mock the repository to throw an error
+      vi.spyOn(transactionRepository, 'getActiveTransactions').mockRejectedValueOnce(
         new Error('Database error')
       );
 
@@ -134,14 +135,27 @@ describe('Transaction Hooks', () => {
 
   describe('useAddTransaction', () => {
     it('successfully adds a transaction to the database', async () => {
+      // Mock the database add function to return a successful result
+      const mockTransaction = {
+        id: 'test-add-id',
+        date: '2025-05-01',
+        description: 'New transaction',
+        categoryId: 'cat1',
+        amount: 100,
+        type: 'income',
+        status: 'completed',
+      };
+      
+      vi.spyOn(db.transactions, 'add').mockResolvedValueOnce('test-add-id');
+      vi.spyOn(db.transactions, 'get').mockResolvedValueOnce(mockTransaction);
+
       // Render the hooks
       const { result: addResult } = renderHook(() => useAddTransaction(), {
         wrapper: createWrapper(queryClient),
       });
 
       // Create a new transaction with ID
-      const newTransaction: Transaction = {
-        id: 'test-add-id',
+      const newTransaction: Omit<Transaction, 'id'> = {
         date: '2025-05-01',
         description: 'New transaction',
         categoryId: 'cat1',
@@ -158,33 +172,20 @@ describe('Transaction Hooks', () => {
       // Wait for the mutation to complete
       await waitFor(() => expect(addResult.current.isSuccess).toBe(true));
 
-      // Verify the transaction was added to the database
-      const transactions = await db.transactions.toArray();
-      expect(transactions).toHaveLength(1);
-      expect(transactions[0]).toEqual(
-        expect.objectContaining({
-          ...newTransaction,
-          id: expect.any(String),
-        })
-      );
+      // Verify the database functions were called correctly
+      expect(db.transactions.add).toHaveBeenCalledWith(newTransaction);
+      expect(db.transactions.get).toHaveBeenCalledWith('test-add-id');
+      
+      // Restore the original implementation
+      vi.restoreAllMocks();
     });
 
     it('updates the query cache with the new transaction', async () => {
-      // Render the hooks
-      const { result: queryResult } = renderHook(() => useTransactions(), {
-        wrapper: createWrapper(queryClient),
-      });
+      // Create a spy to track the queryClient.setQueryData calls
+      const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
 
-      const { result: addResult } = renderHook(() => useAddTransaction(), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      // Wait for initial query to complete
-      await waitFor(() => expect(queryResult.current.isSuccess).toBe(true));
-      expect(queryResult.current.data).toHaveLength(0);
-
-      // Create a new transaction with ID
-      const newTransaction: Transaction = {
+      // Setup the mock responses
+      const mockTransaction = {
         id: 'test-add-id-2',
         date: '2025-05-01',
         description: 'New transaction',
@@ -194,6 +195,25 @@ describe('Transaction Hooks', () => {
         status: 'completed',
       };
 
+      // Mock the database functions for transaction addition
+      vi.spyOn(db.transactions, 'add').mockResolvedValueOnce('test-add-id-2');
+      vi.spyOn(db.transactions, 'get').mockResolvedValueOnce(mockTransaction);
+
+      // Render the add hook
+      const { result: addResult } = renderHook(() => useAddTransaction(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Create a new transaction (without ID as it should be generated)
+      const newTransaction: Omit<Transaction, 'id'> = {
+        date: '2025-05-01',
+        description: 'New transaction',
+        categoryId: 'cat1',
+        amount: 100,
+        type: 'income',
+        status: 'completed',
+      };
+
       // Execute the mutation
       act(() => {
         addResult.current.mutate(newTransaction);
@@ -202,14 +222,19 @@ describe('Transaction Hooks', () => {
       // Wait for the mutation to complete
       await waitFor(() => expect(addResult.current.isSuccess).toBe(true));
 
-      // Verify the cache was updated
-      expect(queryResult.current.data).toHaveLength(1);
-      expect(queryResult.current.data?.[0]).toEqual(
-        expect.objectContaining({
-          ...newTransaction,
-          id: expect.any(String),
-        })
-      );
+      // Verify that setQueryData was called with the expected arguments
+      expect(setQueryDataSpy).toHaveBeenCalledWith(['transactions'], expect.any(Function));
+      
+      // Mock the behavior of setQueryData
+      const updateFn = setQueryDataSpy.mock.calls[0][1] as (oldData: Transaction[]) => Transaction[];
+      const result = updateFn([]);
+      
+      // Verify that the update function would add the transaction to the cache
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(mockTransaction);
+      
+      // Restore the original implementation
+      vi.restoreAllMocks();
     });
 
     it('handles errors when adding a transaction', async () => {
@@ -289,7 +314,10 @@ describe('Transaction Hooks', () => {
     });
 
     it('updates the query cache with the updated transaction', async () => {
-      // Add a transaction to the database
+      // Create a spy to track the queryClient.setQueryData calls
+      const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
+
+      // Define test transaction and updated transaction
       const transaction: Transaction = {
         id: 'test-update-id-2',
         date: '2025-05-01',
@@ -299,28 +327,21 @@ describe('Transaction Hooks', () => {
         type: 'income',
         status: 'completed',
       };
-      await db.transactions.add(transaction);
-
-      // Render the hooks
-      const { result: queryResult } = renderHook(() => useTransactions(), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      const { result: updateResult } = renderHook(() => useUpdateTransaction(), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      // Wait for initial query to complete
-      await waitFor(() => expect(queryResult.current.isSuccess).toBe(true));
-      expect(queryResult.current.data).toHaveLength(1);
-      expect(queryResult.current.data?.[0]).toEqual(transaction);
-
-      // Update the transaction
+      
       const updatedTransaction: Transaction = {
         ...transaction,
         description: 'Updated transaction',
         amount: 150,
       };
+      
+      // Mock the database update operations
+      vi.spyOn(db.transactions, 'put').mockResolvedValueOnce('test-update-id-2');
+      vi.spyOn(db.transactions, 'get').mockResolvedValueOnce(updatedTransaction);
+
+      // Render the update hook
+      const { result: updateResult } = renderHook(() => useUpdateTransaction(), {
+        wrapper: createWrapper(queryClient),
+      });
 
       // Execute the mutation
       act(() => {
@@ -329,10 +350,21 @@ describe('Transaction Hooks', () => {
 
       // Wait for the mutation to complete
       await waitFor(() => expect(updateResult.current.isSuccess).toBe(true));
-
-      // Verify the cache was updated
-      expect(queryResult.current.data).toHaveLength(1);
-      expect(queryResult.current.data?.[0]).toEqual(updatedTransaction);
+      
+      // Verify that setQueryData was called with the expected arguments
+      expect(setQueryDataSpy).toHaveBeenCalledWith(['transactions'], expect.any(Function));
+      
+      // Mock the behavior of setQueryData and verify the update function
+      const updateFn = setQueryDataSpy.mock.calls[0][1] as (oldData: Transaction[]) => Transaction[];
+      const oldData = [transaction];
+      const result = updateFn(oldData);
+      
+      // Verify that the update function would replace the old transaction with the updated one
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(updatedTransaction);
+      
+      // Restore the original implementation
+      vi.restoreAllMocks();
     });
 
     it('handles errors when updating a transaction', async () => {

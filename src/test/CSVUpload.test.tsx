@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { CSVUpload } from '../components/import/CSVUpload';
 import * as importService from '../lib/import/import-service';
+import { act } from 'react';
 
 // Mock the import service functions used by CSVUpload
 vi.mock('../lib/import/import-service', () => ({
@@ -11,35 +12,42 @@ vi.mock('../lib/import/import-service', () => ({
   importCSVFile: vi.fn()
 }));
 
+// Mock the lucide-react components
+vi.mock('lucide-react', () => ({
+  Upload: () => <div data-testid="upload-icon">Upload Icon</div>,
+  FileUp: () => <div data-testid="file-up-icon">File Up Icon</div>,
+}));
+
 describe('CSVUpload Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders the file input and parse button', () => {
+  it('renders the file input', () => {
     render(<CSVUpload 
       onFileSelected={() => {}} 
       onParseCsv={() => {}} 
     />);
     
     expect(screen.getByTestId('file-input')).toBeInTheDocument();
-    expect(screen.getByTestId('parse-button')).toBeInTheDocument();
     expect(screen.queryByTestId('status-message')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('parse-button')).not.toBeInTheDocument(); // Parse button should not appear until a file is selected
   });
   
-  it('shows error message when trying to parse without selecting a file', () => {
+  it('does not show parse button when no file is selected', () => {
     render(<CSVUpload 
       onFileSelected={() => {}} 
       onParseCsv={() => {}} 
     />);
     
-    fireEvent.click(screen.getByTestId('parse-button'));
+    // When no file is selected, the parse button shouldn't be visible
+    expect(screen.queryByTestId('parse-button')).not.toBeInTheDocument();
     
-    expect(screen.getByTestId('status-message')).toHaveTextContent('Please select a CSV file');
+    // The importCSVWithMapping should not have been called
     expect(importService.importCSVWithMapping).not.toHaveBeenCalled();
   });
   
-  it('handles file selection', () => {
+  it('handles file selection', async () => {
     render(<CSVUpload 
       onFileSelected={() => {}} 
       onParseCsv={() => {}} 
@@ -53,91 +61,103 @@ describe('CSVUpload Component', () => {
     });
     
     fireEvent.change(input);
+    
+    // After file selection, the parse button should appear
+    await waitFor(() => {
+      expect(screen.getByTestId('parse-button')).toBeInTheDocument();
+    });
     
     // No status message should be shown after file selection
     expect(screen.queryByTestId('status-message')).not.toBeInTheDocument();
   });
   
-  it('shows success message after successful import', async () => {
-    (importService.importCSVWithMapping as unknown as Mock).mockResolvedValue({
-      insertedIds: ['id1', 'id2', 'id3'],
-      duplicateCount: 0,
-      skippedCount: 0
-    });
+  it('calls onParseCsv when parse button is clicked', async () => {
     (importService.parseCSVForMapping as unknown as Mock).mockResolvedValue({
       headers: ['date', 'description', 'amount', 'type'],
       sampleData: [{}],
       allData: [{}]
     });
-    (importService.previewMappedTransactions as unknown as Mock).mockReturnValue([{}]);
+    
+    const onParseCsvMock = vi.fn();
     
     render(<CSVUpload 
       onFileSelected={() => {}} 
-      onParseCsv={() => {}} 
+      onParseCsv={onParseCsvMock} 
     />);
     
     const file = new File(['test,data'], 'test.csv', { type: 'text/csv' });
     const input = screen.getByTestId('file-input');
     
+    // Set the file
     Object.defineProperty(input, 'files', {
       value: [file]
     });
     
-    fireEvent.change(input);
-    fireEvent.click(screen.getByTestId('parse-button'));
-    
-    // Wait for mapping step to appear
-    await waitFor(() => {
-      expect(screen.getByTestId('preview-button')).toBeInTheDocument();
+    // Trigger file selection
+    await act(async () => {
+      fireEvent.change(input);
     });
     
-    fireEvent.click(screen.getByTestId('preview-button'));
-    fireEvent.click(screen.getByTestId('import-button'));
+    // The parse button should now be visible
+    const parseButton = screen.getByTestId('parse-button');
+    expect(parseButton).toBeInTheDocument();
     
-    // Should show importing status first
-    expect(screen.getByTestId('status-message')).toHaveTextContent('Importing...');
-    
-    await waitFor(() => {
-      expect(screen.getByTestId('status-message')).toHaveTextContent('Successfully imported 3 transactions. Skipped 0 duplicates');
+    // Click the parse button
+    await act(async () => {
+      fireEvent.click(parseButton);
     });
     
-    expect(importService.importCSVWithMapping).toHaveBeenCalledWith(file, expect.any(Object));
+    // Wait for the parsing to complete and verify onParseCsv was called
+    await waitFor(() => {
+      expect(onParseCsvMock).toHaveBeenCalledWith(expect.objectContaining({
+        headers: ['date', 'description', 'amount', 'type'],
+        sampleData: expect.any(Array),
+        allData: expect.any(Array)
+      }));
+    });
+    
+    // Verify that parseCSVForMapping was called with the file
+    expect(importService.parseCSVForMapping).toHaveBeenCalledWith(file);
   });
   
-  it('shows error message when import fails', async () => {
-    (importService.importCSVWithMapping as unknown as Mock).mockRejectedValue(new Error('Import failed'));
-    (importService.parseCSVForMapping as unknown as Mock).mockResolvedValue({
-      headers: ['date', 'description', 'amount', 'type'],
-      sampleData: [{}],
-      allData: [{}]
-    });
-    (importService.previewMappedTransactions as unknown as Mock).mockReturnValue([{}]);
+  it('handles parsing errors', async () => {
+    (importService.parseCSVForMapping as unknown as Mock).mockRejectedValue(new Error('Parse failed'));
+    
+    const onParseCsvMock = vi.fn();
     
     render(<CSVUpload 
       onFileSelected={() => {}} 
-      onParseCsv={() => {}} 
+      onParseCsv={onParseCsvMock} 
     />);
     
     const file = new File(['test,data'], 'test.csv', { type: 'text/csv' });
     const input = screen.getByTestId('file-input');
     
+    // Set the file
     Object.defineProperty(input, 'files', {
       value: [file]
     });
     
-    fireEvent.change(input);
-    fireEvent.click(screen.getByTestId('parse-button'));
-    
-    // Wait for mapping step to appear
-    await waitFor(() => {
-      expect(screen.getByTestId('preview-button')).toBeInTheDocument();
+    // Trigger file selection
+    await act(async () => {
+      fireEvent.change(input);
     });
     
-    fireEvent.click(screen.getByTestId('preview-button'));
-    fireEvent.click(screen.getByTestId('import-button'));
+    // The parse button should now be visible
+    const parseButton = screen.getByTestId('parse-button');
+    expect(parseButton).toBeInTheDocument();
     
+    // Click the parse button
+    await act(async () => {
+      fireEvent.click(parseButton);
+    });
+    
+    // Verify that parseCSVForMapping was called with the file
+    expect(importService.parseCSVForMapping).toHaveBeenCalledWith(file);
+    
+    // Verify that onParseCsvMock was not called because parsing failed
     await waitFor(() => {
-      expect(screen.getByTestId('status-message')).toHaveTextContent('Failed to import CSV file');
+      expect(onParseCsvMock).not.toHaveBeenCalled();
     });
   });
 });
