@@ -21,6 +21,8 @@ export interface ImportSession {
   totalCount: number;
   importedCount: number;
   duplicateCount: number;
+  updatedCount?: number; // Count of transactions that were updated
+  skippedCount?: number; // New field for tracking skipped rows
 }
 
 export interface Category {
@@ -103,6 +105,11 @@ export class BudgetFlowrDB extends Dexie {
     this.version(4).stores({
       transactions: 'id, date, categoryId, type, status, accountId, [date+amount+description]', // Added compound index
       imports: 'id, date, fileName, totalCount, importedCount, duplicateCount'
+    });
+
+    // Version 5: Add skippedCount to imports table
+    this.version(5).stores({
+      imports: 'id, date, fileName, totalCount, importedCount, duplicateCount, skippedCount'
     });
   }
 }

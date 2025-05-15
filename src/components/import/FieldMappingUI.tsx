@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FieldMapping } from '@/lib/import/field-mapping-types';
-import { detectMapping, getSavedMappings, saveMapping } from '@/lib/import/field-mapping-service';
+import { detectMapping, getSavedMappings, saveMapping, updateMapping } from '@/lib/import/field-mapping-service';
 
 interface FieldMappingUIProps {
   headers: string[];
@@ -13,12 +13,15 @@ export const FieldMappingUI: React.FC<FieldMappingUIProps> = ({
   onMappingChange,
   initialMapping
 }) => {
-  const [mapping, setMapping] = useState<FieldMapping>(
+  // Use initialMapping only during initial render, not on every update
+  const [mapping, setMapping] = useState<FieldMapping>(() =>
     initialMapping || detectMapping(headers)
   );
   const [savedMappings, setSavedMappings] = useState<FieldMapping[]>([]);
   const [configName, setConfigName] = useState('');
   const [sourceIdentifier, setSourceIdentifier] = useState('');
+  const [loadedMappingId, setLoadedMappingId] = useState<string | undefined>(initialMapping?.id);
+  const [mappingModified, setMappingModified] = useState(false);
 
   useEffect(() => {
     const loadMappings = async () => {
@@ -28,28 +31,42 @@ export const FieldMappingUI: React.FC<FieldMappingUIProps> = ({
     loadMappings();
   }, []);
 
-  useEffect(() => {
-    onMappingChange(mapping);
-  }, [mapping]);
-
   const handleMappingChange = (field: keyof FieldMapping['mappings'], value: string | null) => {
-    setMapping({
+    const newMapping = {
       ...mapping,
       mappings: {
         ...mapping.mappings,
         [field]: value
       }
-    });
+    };
+
+    setMapping(newMapping);
+
+    if (loadedMappingId) {
+      setMappingModified(true);
+    }
+
+    // Notify parent component of the change
+    onMappingChange(newMapping);
   };
 
 const handleOptionChange = (option: keyof FieldMapping['options'], value: boolean | string) => {
-  setMapping({
+  const newMapping = {
     ...mapping,
     options: {
       ...mapping.options,
       [option]: value
     }
-  });
+  };
+
+  setMapping(newMapping);
+
+  if (loadedMappingId) {
+    setMappingModified(true);
+  }
+
+  // Notify parent component of the change
+  onMappingChange(newMapping);
 };
 
   const handleSaveMapping = async () => {
@@ -69,6 +86,29 @@ const handleOptionChange = (option: keyof FieldMapping['options'], value: boolea
 
   const handleLoadMapping = (savedMapping: FieldMapping) => {
     setMapping(savedMapping);
+    setConfigName(savedMapping.name || '');
+    setSourceIdentifier(savedMapping.sourceIdentifier || '');
+    setLoadedMappingId(savedMapping.id);
+    setMappingModified(false);
+
+    // Notify parent component of the loaded mapping
+    onMappingChange(savedMapping);
+  };
+
+  const handleUpdateMapping = async () => {
+    if (!loadedMappingId) return;
+
+    const mappingToUpdate: FieldMapping = {
+      ...mapping,
+      id: loadedMappingId,
+      name: configName || mapping.name,
+      sourceIdentifier: sourceIdentifier || mapping.sourceIdentifier
+    };
+
+    await updateMapping(mappingToUpdate);
+    const mappings = await getSavedMappings();
+    setSavedMappings(mappings);
+    setMappingModified(false);
   };
 
   return (
@@ -280,13 +320,36 @@ const handleOptionChange = (option: keyof FieldMapping['options'], value: boolea
             />
           </div>
 
-          <button
-            onClick={handleSaveMapping}
-            disabled={!configName}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
-          >
-            Save Configuration
-          </button>
+          <div className="flex space-x-4">
+            {loadedMappingId ? (
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleUpdateMapping}
+                  disabled={!mappingModified}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500"
+                >
+                  Update Saved Configuration
+                </button>
+                <button
+                  onClick={() => {
+                    setLoadedMappingId(undefined);
+                    setMappingModified(false);
+                  }}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleSaveMapping}
+                disabled={!configName}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
+              >
+                Save As New Configuration
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

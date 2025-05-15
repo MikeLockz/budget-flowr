@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "type-check": "tsc -b --noEmit",
+    "prebuild": "npm run type-check",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "build:ci": "CI=true npm run build"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.7",

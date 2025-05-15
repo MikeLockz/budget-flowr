@@ -135,7 +135,10 @@ export async function updateDuplicateTransaction(
     // Update field if value is different
     if (existingTransaction[key as keyof Transaction] !== value) {
       // Update the field with type safety
-      updatedTransaction[key as keyof Transaction] = value as Transaction[keyof Transaction];
+      if (key in existingTransaction) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (updatedTransaction[key as keyof Transaction] as any) = value;
+      }
     }
   }
 

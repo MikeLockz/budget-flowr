@@ -73,6 +73,7 @@ export const CSVUpload: React.FC = () => {
   };
 
   const handleMappingChange = (newMapping: FieldMapping) => {
+    // Set the mapping state
     setMapping(newMapping);
 
     // Update preview when mapping changes
@@ -92,7 +93,7 @@ export const CSVUpload: React.FC = () => {
 
     try {
       const result = await importCSVWithMapping(file, mapping);
-      setStatus(`Successfully imported ${result.insertedIds.length} transactions. Skipped ${result.duplicateCount} duplicates.`);
+      setStatus(`Successfully imported ${result.insertedIds.length} transactions. Skipped ${result.duplicateCount} duplicates and ${result.skippedCount} rows with missing critical data.`);
       setFile(null);
       setMapping(null);
       setPreviewData(null);

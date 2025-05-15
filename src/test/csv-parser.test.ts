@@ -17,15 +17,17 @@ vi.mock('papaparse', () => {
 describe('CSV Parser', () => {
   it('should parse CSV data correctly', async () => {
     // Mock implementation
-(Papa.parse as vi.Mock).mockImplementation((_file, options: { complete: (results: { data: Array<Record<string, string>>; errors: Array<{ message: string; row: number }> }) => void }) => {
-  options.complete({
-        data: [
-          { date: '2025-01-01', description: 'Test', amount: '100.00' },
-          { date: '2025-01-02', description: 'Test 2', amount: '200.00' },
-        ],
-        errors: []
-      });
+(Papa.parse as ReturnType<typeof vi.fn>).mockImplementation(
+  (_file: File, options: { complete: (results: { data: Array<Record<string, string>>; errors: Array<{ message: string; row: number }> }) => void }) => {
+    options.complete({
+      data: [
+        { date: '2025-01-01', description: 'Test', amount: '100.00' },
+        { date: '2025-01-02', description: 'Test 2', amount: '200.00' },
+      ],
+      errors: []
     });
+  }
+);
 
     const mockFile = new File([''], 'test.csv', { type: 'text/csv' });
     const result = await parseCSV(mockFile);

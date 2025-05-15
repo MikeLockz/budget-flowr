@@ -38,10 +38,12 @@ export const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({
 
   // Determine which years to display
   const determineYearsToDisplay = () => {
+    // If years are explicitly provided, use them
     if (years && years.length > 0) {
       return years;
     }
     
+    // If yearRange is provided, use it
     if (yearRange) {
       const [startYear, endYear] = yearRange;
       const result = [];
@@ -51,14 +53,28 @@ export const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({
       return result;
     }
     
-    // Extract years from data as fallback
-    const yearsFromData = new Set<number>();
-    data.forEach(([dateStr]) => {
-      const year = new Date(dateStr).getFullYear();
-      yearsFromData.add(year);
-    });
+    // Otherwise, extract years from data
+    if (data.length > 0) {
+      // Find min and max years from actual transaction data
+      let minYear = Infinity;
+      let maxYear = -Infinity;
+      
+      data.forEach(([dateStr]) => {
+        const year = new Date(dateStr).getFullYear();
+        minYear = Math.min(minYear, year);
+        maxYear = Math.max(maxYear, year);
+      });
+      
+      // Generate array of years between min and max
+      const result = [];
+      for (let y = minYear; y <= maxYear; y++) {
+        result.push(y);
+      }
+      return result;
+    }
     
-    return Array.from(yearsFromData).sort();
+    // Default to current year if no data
+    return [new Date().getFullYear()];
   };
 
   const dataByYear = groupDataByYear(data);
@@ -89,12 +105,13 @@ export const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({
       formatter: (params) => {
         if (Array.isArray(params)) {
           const p = params[0];
+          if (!p || !p.data) return '';
           const data = p.data as [string, number] | null;
           if (data) {
             const year = new Date(data[0]).getFullYear();
             return `${data[0]} (${year}): ${data[1]}`;
           }
-        } else {
+        } else if (params && params.data) {
           const data = params.data as [string, number] | null;
           if (data) {
             const year = new Date(data[0]).getFullYear();

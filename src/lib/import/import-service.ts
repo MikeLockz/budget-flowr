@@ -3,7 +3,7 @@ import { transactionRepository, categoryRepository, importRepository } from '@/l
 import { FieldMapping, PreviewData } from './field-mapping-types';
 import { applyMapping, generatePreview } from './field-mapping-service';
 import { generateUUID, ImportSession } from '@/lib/db';
-import { isDuplicateTransaction } from './transaction-deduplication';
+import { isDuplicateTransaction, updateDuplicateTransaction } from './transaction-deduplication';
 
 /**
  * Parse CSV and return headers and sample data for mapping UI.
@@ -86,15 +86,16 @@ export function previewMappedTransactions(
 
 /**
  * Import transactions with specified mapping.
- * Returns both inserted IDs and count of duplicates skipped.
+ * Returns inserted IDs, count of duplicates found, count of duplicates updated, and count of skipped rows.
+ * When a duplicate is found, non-index fields are updated if they have different values.
  */
 export async function importCSVWithMapping(
   file: File,
   mapping: FieldMapping
-): Promise<{ insertedIds: string[]; duplicateCount: number }> {
+): Promise<{ insertedIds: string[]; duplicateCount: number; updatedCount: number; skippedCount: number }> {
   try {
     const parsedData = await parseCSVForMapping(file);
-    const transactions = applyMapping(parsedData.allData, mapping);
+    const { transactions, skippedRows } = applyMapping(parsedData.allData, mapping);
     
     // Create import session
     const importId = generateUUID();
@@ -102,9 +103,11 @@ export async function importCSVWithMapping(
       id: importId,
       date: new Date().toISOString().split('T')[0],
       fileName: file.name,
-      totalCount: transactions.length,
+      totalCount: parsedData.allData.length,
       importedCount: 0,
-      duplicateCount: 0
+      duplicateCount: 0,
+      updatedCount: 0,
+      skippedCount: skippedRows.length
     };
 
     // Extract unique category IDs from transactions
@@ -140,16 +143,20 @@ export async function importCSVWithMapping(
       });
     }
 
-    // Now insert the transactions, skipping duplicates
+    // Now insert the transactions, updating duplicates with new field values
     const insertedIds: string[] = [];
     let duplicateCount = 0;
-    
+    let updatedCount = 0;
+
     for (const transaction of transactions) {
       // Check if this transaction is a duplicate
-      const isDuplicate = await isDuplicateTransaction(transaction);
-      
-      if (isDuplicate) {
+      const { isDuplicate, existingTransaction } = await isDuplicateTransaction(transaction);
+
+      if (isDuplicate && existingTransaction) {
         duplicateCount++;
+        // Update non-index fields if they have different values
+        await updateDuplicateTransaction(existingTransaction, transaction);
+        updatedCount++;
       } else {
         const id = await transactionRepository.add(transaction);
         insertedIds.push(id);
@@ -159,11 +166,12 @@ export async function importCSVWithMapping(
     // Update import session with results
     importSession.importedCount = insertedIds.length;
     importSession.duplicateCount = duplicateCount;
-    
+    importSession.updatedCount = updatedCount;
+
     // Save the import session
     await importRepository.add(importSession);
 
-    return { insertedIds, duplicateCount };
+    return { insertedIds, duplicateCount, updatedCount, skippedCount: skippedRows.length };
   } catch (error) {
     console.error('Error importing CSV file:', error);
     throw error;
@@ -173,7 +181,7 @@ export async function importCSVWithMapping(
 /**
  * Legacy function for backward compatibility.
  */
-export async function importCSVFile(file: File): Promise<{ insertedIds: string[]; duplicateCount: number }> {
+export async function importCSVFile(file: File): Promise<{ insertedIds: string[]; duplicateCount: number; updatedCount: number }> {
   try {
     const parsedData = await parseCSVForMapping(file);
 

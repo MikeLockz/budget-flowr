@@ -102,14 +102,13 @@ export const LineChart: React.FC<{
     tooltip: {
       trigger: 'axis',
       formatter: (params) => {
-        // params is an array of series data points
         if (!Array.isArray(params)) return '';
         const axisValue = (params[0] as { axisValue?: string }).axisValue || '';
         let tooltipText = axisValue + '<br/>';
         let total = 0;
         params.forEach(p => {
           const value = typeof p.data === 'number' ? p.data : 0;
-          tooltipText += `${p.seriesName}: ${formatDollarWholeNumber(value)}<br/>`;
+          tooltipText += `${p.seriesName || ''}: ${formatDollarWholeNumber(value)}<br/>`;
           total += value;
         });
         tooltipText += `<b>Total: ${formatDollarWholeNumber(total)}</b>`;
@@ -160,19 +159,6 @@ export const BarChart: React.FC<{
       trigger: 'axis',
       axisPointer: {
         type: 'shadow',
-      },
-      formatter: (params) => {
-        if (!Array.isArray(params)) return '';
-        const axisValue = (params[0] as { axisValue?: string }).axisValue || '';
-        let tooltipText = axisValue + '<br/>';
-        let total = 0;
-        params.forEach(p => {
-          const value = typeof p.data === 'number' ? p.data : 0;
-          tooltipText += `${p.seriesName}: ${formatDollarWholeNumber(value)}<br/>`;
-          total += value;
-        });
-        tooltipText += `<b>Total: ${formatDollarWholeNumber(total)}</b>`;
-        return tooltipText;
       },
     },
     legend: {
