@@ -1,10 +1,13 @@
 // Replace mock API functions with Dexie.js database operations
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, Transaction as TransactionType, Category } from '@/lib/db';
+import { transactionRepository } from '@/lib/repositories';
 import { useMemo } from 'react';
 
-const fetchTransactions = async (): Promise<TransactionType[]> => {
-  return db.transactions.toArray();
+const fetchTransactions = async (archived = false): Promise<TransactionType[]> => {
+  return archived 
+    ? transactionRepository.getArchivedTransactions()
+    : transactionRepository.getActiveTransactions();
 };
 
 const fetchCategories = async (): Promise<Category[]> => {
@@ -30,10 +33,10 @@ const deleteTransaction = async (id: string): Promise<string> => {
   return id;
 };
 
-export const useTransactions = () => {
+export const useTransactions = (archived = false) => {
   return useQuery<TransactionType[]>({
-    queryKey: ['transactions'],
-    queryFn: fetchTransactions,
+    queryKey: ['transactions', { archived }],
+    queryFn: () => fetchTransactions(archived),
   });
 };
 
@@ -44,8 +47,8 @@ export const useCategories = () => {
   });
 };
 
-export const useTransactionData = () => {
-  const { data: transactions = [], isLoading: transactionsLoading } = useTransactions();
+export const useTransactionData = (archived = false) => {
+  const { data: transactions = [], isLoading: transactionsLoading } = useTransactions(archived);
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
 
   const transactionsWithCategoryName = useMemo(() => {
@@ -135,9 +138,56 @@ export const useDeleteTransaction = () => {
   return useMutation<string, Error, string>({
     mutationFn: deleteTransaction,
     onSuccess: (deletedId) => {
-      queryClient.setQueryData<TransactionType[]>(['transactions'], (oldData = []) =>
+      queryClient.setQueryData<TransactionType[]>(['transactions', { archived: false }], (oldData = []) =>
         oldData.filter((transaction) => transaction.id !== deletedId)
       );
+      queryClient.setQueryData<TransactionType[]>(['transactions', { archived: true }], (oldData = []) =>
+        oldData.filter((transaction) => transaction.id !== deletedId)
+      );
+    },
+  });
+};
+
+export const useArchiveTransaction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (id: string) => transactionRepository.archiveTransaction(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+  });
+};
+
+export const useRestoreTransaction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: (id: string) => transactionRepository.restoreTransaction(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+  });
+};
+
+export const useBulkArchiveTransactions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string[]>({
+    mutationFn: (ids: string[]) => transactionRepository.bulkArchive(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+  });
+};
+
+export const useBulkRestoreTransactions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string[]>({
+    mutationFn: (ids: string[]) => transactionRepository.bulkRestore(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
   });
 };

@@ -164,7 +164,7 @@ export const prepareCategoryChartData = (transactions: Array<{ categoryName?: st
 };
 
 export const Dashboard = () => {
-  const { transactions, categoryChartData, isLoading } = useTransactionData();
+  const { transactions, categoryChartData, isLoading } = useTransactionData(false); // Explicitly get non-archived transactions
   const { visibleTransactionIds, resetFilters } = useFilterContext();
 
   // Ensure transactions is always an array

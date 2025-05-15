@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+// These imports are not used
+// import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ImportStepper } from '@/components/import/ImportStepper';
 import { CSVUpload } from '@/components/import/CSVUpload';
@@ -39,7 +40,7 @@ function ImportData() {
   };
 
   // Handle CSV parsing
-  const handleParseCsv = async (parsedData: any) => {
+  const handleParseCsv = async (parsedData: { headers: string[]; sampleData: Record<string, string>[]; allData: Record<string, string>[] }) => {
     setCsvData(parsedData);
     setCurrentStep(1); // Move to field mapping step
   };
@@ -50,13 +51,24 @@ function ImportData() {
   };
 
   // Handle preview generation
-  const handlePreviewGenerated = (preview: any) => {
+  const handlePreviewGenerated = (preview: {
+    rawData: Record<string, string>[];
+    mappedTransactions: Transaction[];
+    skippedRows?: Record<string, string>[];
+    mapping?: FieldMapping;
+    file?: File;
+  }) => {
     setPreviewData(preview);
     setCurrentStep(2); // Move to preview step
   };
 
   // Handle import completion
-  const handleImportComplete = (result: any) => {
+  const handleImportComplete = (result: {
+    insertedIds: string[];
+    duplicateCount: number;
+    updatedCount: number;
+    skippedCount: number;
+  }) => {
     setImportResult(result);
     setCurrentStep(3); // Move to confirmation step
 
@@ -67,12 +79,14 @@ function ImportData() {
     });
   };
 
-  // Navigation controls
+  // Navigation controls - not currently used
+  /*
   const goToNextStep = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
   };
+  */
 
   const goToPreviousStep = () => {
     if (currentStep > 0) {
@@ -110,31 +124,36 @@ function ImportData() {
             headers={csvData.headers}
             onMappingChange={handleMappingChange}
             initialMapping={mapping}
-            onPreviewGenerated={handlePreviewGenerated}
+            // onPreviewGenerated removed as it's not in the component props
           />
           {status && <p className="mt-2 text-sm text-gray-700" data-testid="status-message">{status}</p>}
           <div className="flex justify-between mt-6">
             <Button variant="outline" onClick={goToPreviousStep}>
               Back
             </Button>
-            <Button onClick={() => {
-              if (mapping && csvData) {
-                // Generate the preview using proper data
-                import('@/lib/import/import-service').then(({ previewMappedTransactions }) => {
-                  const preview = previewMappedTransactions(
-                    {
-                      headers: csvData.headers,
-                      sampleData: csvData.sampleData,
-                      allData: csvData.allData
-                    },
-                    mapping
-                  );
-                  // Add the file reference since it's needed for import
-                  preview.file = file;
-                  handlePreviewGenerated(preview);
-                });
-              }
-            }}>
+            <Button 
+              onClick={() => {
+                if (mapping && csvData) {
+                  // Generate the preview using proper data
+                  import('@/lib/import/import-service').then(({ previewMappedTransactions }) => {
+                    const preview = previewMappedTransactions(
+                      {
+                        headers: csvData.headers,
+                        sampleData: csvData.sampleData,
+                        allData: csvData.allData
+                      },
+                      mapping
+                    );
+                    // Add the file reference since it's needed for import
+                    const previewWithFile = {
+                      ...preview,
+                      file: file as File // Ensure it's not null
+                    };
+                    handlePreviewGenerated(previewWithFile);
+                  });
+                }
+              }}
+            >
               Generate Preview
             </Button>
           </div>

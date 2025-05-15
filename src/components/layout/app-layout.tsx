@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/app-store';
-import { Menu, X, Sun, Moon, Monitor, Upload, BarChart } from 'lucide-react';
+import { Menu, X, Sun, Moon, Monitor, Upload, BarChart, Settings as SettingsIcon, ListFilter } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { cn } from "../../lib/utils";
-import { Link, useRouter } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { theme, setTheme, sidebarOpen, setSidebarOpen } = useAppStore();
   const [mounted, setMounted] = useState(false);
-  const router = useRouter();
+  const location = useLocation();
 
   // After mounting, we have access to the window object
   useEffect(() => {
@@ -48,8 +48,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [setSidebarOpen]);
 
-  // Get the current route path
-  const currentPath = router.state.location.pathname;
+  // Get the current route path and actively subscribe to route changes
+  const currentPath = location.pathname;
 
   if (!mounted) {
     // Return a placeholder during SSR
@@ -94,12 +94,16 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               <BarChart className="h-4 w-4" />
               Dashboard
             </Link>
-            <a
-              href="#"
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary/50"
+            <Link
+              to="/transactions"
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                currentPath.startsWith("/transactions") ? "bg-secondary" : "hover:bg-secondary/50"
+              )}
             >
+              <ListFilter className="h-4 w-4" />
               Transactions
-            </a>
+            </Link>
             <a
               href="#"
               className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary/50"
@@ -128,12 +132,16 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               <Upload className="h-4 w-4" />
               Import
             </Link>
-            <a
-              href="#"
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary/50"
+            <Link
+              to="/settings"
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
+                currentPath.startsWith("/settings") ? "bg-secondary" : "hover:bg-secondary/50"
+              )}
             >
+              <SettingsIcon className="h-4 w-4" />
               Settings
-            </a>
+            </Link>
           </nav>
         </aside>
 

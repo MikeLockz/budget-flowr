@@ -17,7 +17,10 @@ describe('CSVUpload Component', () => {
   });
 
   it('renders the file input and parse button', () => {
-    render(<CSVUpload />);
+    render(<CSVUpload 
+      onFileSelected={() => {}} 
+      onParseCsv={() => {}} 
+    />);
     
     expect(screen.getByTestId('file-input')).toBeInTheDocument();
     expect(screen.getByTestId('parse-button')).toBeInTheDocument();
@@ -25,7 +28,10 @@ describe('CSVUpload Component', () => {
   });
   
   it('shows error message when trying to parse without selecting a file', () => {
-    render(<CSVUpload />);
+    render(<CSVUpload 
+      onFileSelected={() => {}} 
+      onParseCsv={() => {}} 
+    />);
     
     fireEvent.click(screen.getByTestId('parse-button'));
     
@@ -34,7 +40,10 @@ describe('CSVUpload Component', () => {
   });
   
   it('handles file selection', () => {
-    render(<CSVUpload />);
+    render(<CSVUpload 
+      onFileSelected={() => {}} 
+      onParseCsv={() => {}} 
+    />);
     
     const file = new File(['test,data'], 'test.csv', { type: 'text/csv' });
     const input = screen.getByTestId('file-input');
@@ -62,7 +71,10 @@ describe('CSVUpload Component', () => {
     });
     (importService.previewMappedTransactions as unknown as Mock).mockReturnValue([{}]);
     
-    render(<CSVUpload />);
+    render(<CSVUpload 
+      onFileSelected={() => {}} 
+      onParseCsv={() => {}} 
+    />);
     
     const file = new File(['test,data'], 'test.csv', { type: 'text/csv' });
     const input = screen.getByTestId('file-input');
@@ -101,7 +113,10 @@ describe('CSVUpload Component', () => {
     });
     (importService.previewMappedTransactions as unknown as Mock).mockReturnValue([{}]);
     
-    render(<CSVUpload />);
+    render(<CSVUpload 
+      onFileSelected={() => {}} 
+      onParseCsv={() => {}} 
+    />);
     
     const file = new File(['test,data'], 'test.csv', { type: 'text/csv' });
     const input = screen.getByTestId('file-input');

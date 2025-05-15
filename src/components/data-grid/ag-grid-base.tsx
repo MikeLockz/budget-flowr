@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, GridReadyEvent, GridApi, ClientSideRowModelModule, ClientSideRowModelApiModule, ValidationModule, PaginationModule, RowSelectionModule, TextFilterModule, NumberFilterModule, DateFilterModule, CustomFilterModule, ColumnAutoSizeModule, ModuleRegistry } from 'ag-grid-community';
+import { ColDef, GridReadyEvent, GridApi, ClientSideRowModelModule, ClientSideRowModelApiModule, ValidationModule, PaginationModule, RowSelectionModule, TextFilterModule, NumberFilterModule, DateFilterModule, CustomFilterModule, ColumnAutoSizeModule, ModuleRegistry, TextEditorModule } from 'ag-grid-community';
 
 // Import AG Grid styles
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+// import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 ModuleRegistry.registerModules([
   ClientSideRowModelModule,
@@ -16,6 +16,7 @@ ModuleRegistry.registerModules([
   DateFilterModule,
   CustomFilterModule,
   ColumnAutoSizeModule,
+  TextEditorModule,
 ]);
 
 
@@ -99,31 +100,31 @@ export const AgGridBase: React.FC<AgGridBaseProps> = ({
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
         pagination={pagination}
-      paginationPageSize={paginationPageSize}
-      paginationPageSizeSelector={[100, 500, 1000]}
-      rowSelection={rowSelection}
-      onGridReady={handleGridReady}
-    onSelectionChanged={onSelectionChanged}
-    onFilterChanged={(event) => {
-      console.log('AG GRID BASE: onFilterChanged event:', event);
-      if (onFilterChanged) {
-        onFilterChanged(event);
-      }
-    }}
-    domLayout={domLayout}
-    modules={[
-      ClientSideRowModelModule,
-      ClientSideRowModelApiModule,
-      ValidationModule,
-      PaginationModule,
-      RowSelectionModule,
-      TextFilterModule,
-      NumberFilterModule,
-      DateFilterModule,
-      CustomFilterModule,
-      ColumnAutoSizeModule,
-    ]}
-  />
+        paginationPageSize={paginationPageSize}
+        paginationPageSizeSelector={[100, 500, 1000]}
+        rowSelection={rowSelection}
+        onGridReady={handleGridReady}
+        onSelectionChanged={onSelectionChanged}
+        onFilterChanged={(event) => {
+          if (onFilterChanged) {
+            onFilterChanged(event);
+          }
+        }}
+        domLayout={domLayout}
+        modules={[
+          ClientSideRowModelModule,
+          ClientSideRowModelApiModule,
+          ValidationModule,
+          PaginationModule,
+          RowSelectionModule,
+          TextFilterModule,
+          NumberFilterModule,
+          DateFilterModule,
+          CustomFilterModule,
+          ColumnAutoSizeModule,
+          TextEditorModule,
+        ]}
+      />
     </div>
   );
 };
