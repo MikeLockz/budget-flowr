@@ -7,7 +7,7 @@ import { Upload, FileUp } from 'lucide-react';
 
 interface CSVUploadProps {
   onFileSelected: (file: File) => void;
-  onParseCsv: (data: any) => void;
+  onParseCsv: (data: { headers: string[]; sampleData: Record<string, string>[]; allData: Record<string, string>[] }) => void;
   initialFile?: File | null;
 }
 
@@ -74,7 +74,7 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({
       // Auto-detect initial mapping will be handled by parent component
       onParseCsv(result);
       setStatus('');
-    } catch (error) {
+    } catch {
       setStatus('Failed to parse CSV file. Please check the file format and try again.');
     } finally {
       setIsProcessing(false);
@@ -134,11 +134,11 @@ export const CSVUpload: React.FC<CSVUploadProps> = ({
       </div>
       
       {file && (
-        <div className="flex justify-center">
+        <div className="flex justify-end">
           <Button
             onClick={handleParseCsv}
             disabled={isProcessing}
-            className="mx-auto"
+            className=""
             data-testid="parse-button"
           >
             {isProcessing ? (

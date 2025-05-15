@@ -54,6 +54,22 @@ describe('Database Versioning', () => {
     testDB.version(5).stores({
       imports: 'id, date, fileName, totalCount, importedCount, duplicateCount, skippedCount'
     });
+    
+    // Version 6: Ensure date is indexed for sorting in import history
+    testDB.version(6).stores({
+      imports: 'id, date, fileName, totalCount, importedCount, duplicateCount, skippedCount'
+    });
+    
+    // Version 7: Add archived field to transactions
+    testDB.version(7).stores({
+      transactions: 'id, date, categoryId, type, status, accountId, [date+amount+description], archived' // Added archived index
+    }).upgrade(tx => {
+      // Migration logic for existing transactions
+      return tx.table('transactions').toCollection().modify(transaction => {
+        // Set default archived value for existing transactions
+        transaction.archived = false;
+      });
+    });
 
     // Open the database with the explicitly defined schema
     await testDB.open();
@@ -68,8 +84,8 @@ describe('Database Versioning', () => {
   });
 
   it('should initialize with the correct version', async () => {
-    // The current version should be 5 based on our schema definition in db.ts
-    expect(testDB.verno).toBe(5);
+    // The current version should be 7 based on our schema definition in db.ts
+    expect(testDB.verno).toBe(7);
 
     // Log database version in case of future issues
     console.log(`Test database version: ${testDB.verno}`);

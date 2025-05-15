@@ -1,5 +1,4 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import App from '../App';
 import { useAppStore } from '../store/app-store';
@@ -10,14 +9,29 @@ vi.mock('../store/app-store', () => ({
   useAppStore: vi.fn(),
 }));
 
-// Mock AppLayout and Dashboard to simplify tests
-vi.mock('../components/layout/app-layout', () => ({
-  AppLayout: ({ children }: { children: React.ReactNode }) => <div data-testid="app-layout">{children}</div>,
+// Mock Router to simplify tests
+vi.mock('../router', () => ({
+  Router: () => <div data-testid="app-router">Router Content</div>,
 }));
 
-vi.mock('../pages/dashboard', () => ({
-  Dashboard: () => <div data-testid="dashboard">Dashboard</div>,
+// Mock Toaster component
+vi.mock('../components/ui/toaster', () => ({
+  Toaster: () => <div data-testid="toaster">Toaster Component</div>,
 }));
+
+// Mock matchMedia API
+beforeEach(() => {
+  window.matchMedia = vi.fn().mockImplementation(query => ({
+    matches: query === '(prefers-color-scheme: dark)',
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+});
 
 describe('App component', () => {
   const queryClient = new QueryClient();
@@ -29,53 +43,47 @@ describe('App component', () => {
     document.documentElement.className = '';
   });
 
-  it('renders QueryClientProvider with AppLayout and Dashboard', () => {
+  it('renders QueryClientProvider with Router and Toaster', async () => {
     (useAppStore as unknown as Mock).mockReturnValue({ theme: 'light' });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    );
+    await act(async () => {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      );
+    });
 
-    expect(screen.getByTestId('app-layout')).toBeInTheDocument();
-    expect(screen.getByTestId('dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('app-router')).toBeInTheDocument();
+    expect(screen.getByTestId('toaster')).toBeInTheDocument();
   });
 
-  it('applies light theme class to document root', () => {
+  it('applies light theme class to document root', async () => {
     (useAppStore as unknown as Mock).mockReturnValue({ theme: 'light' });
 
-    render(<App />);
+    await act(async () => {
+      render(<App />);
+    });
 
     expect(document.documentElement.classList.contains('light')).toBe(true);
   });
 
-  it('applies dark theme class to document root', () => {
+  it('applies dark theme class to document root', async () => {
     (useAppStore as unknown as Mock).mockReturnValue({ theme: 'dark' });
 
-    render(<App />);
+    await act(async () => {
+      render(<App />);
+    });
 
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
-  it('applies system theme class to document root based on prefers-color-scheme', () => {
+  it('applies system theme class to document root based on prefers-color-scheme', async () => {
     (useAppStore as unknown as Mock).mockReturnValue({ theme: 'system' });
 
-    // Mock matchMedia
-    const matchMediaMock = vi.fn().mockImplementation(query => ({
-      matches: query === '(prefers-color-scheme: dark)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
-
-    window.matchMedia = matchMediaMock;
-
-    render(<App />);
+    await act(async () => {
+      render(<App />);
+    });
 
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });

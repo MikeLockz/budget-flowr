@@ -10,7 +10,7 @@ import { AlertTriangle } from 'lucide-react';
 
 interface TransactionPreviewProps {
   previewData: PreviewData;
-  onImportComplete?: (result: any) => void;
+  onImportComplete?: (result: { insertedIds: string[]; duplicateCount: number; updatedCount: number; skippedCount: number; }) => void;
 }
 
 export const TransactionPreview: React.FC<TransactionPreviewProps> = ({ 

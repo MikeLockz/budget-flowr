@@ -1,14 +1,18 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { Outlet, createRootRoute, createRoute } from '@tanstack/react-router';
 import { Dashboard } from './pages/dashboard';
 import { AppLayout } from './components/layout/app-layout';
-import { QueryClient } from '@tanstack/react-query';
-import { FilterProvider } from './contexts/FilterContext';
+// Not used in this file
+// import { QueryClient } from '@tanstack/react-query';
+// Not used in this file
+// import { FilterProvider } from './contexts/FilterContext';
 
 // Import pages we'll create
 const Import = React.lazy(() => import('./pages/import'));
 const ImportHistory = React.lazy(() => import('./pages/import/import-history'));
+const SettingsPage = React.lazy(() => import('./pages/settings'));
+const TransactionsPage = React.lazy(() => import('./pages/transactions'));
 
 // Create a root route
 const rootRoute = createRootRoute({
@@ -40,11 +44,27 @@ const importHistoryRoute = createRoute({
   component: ImportHistory,
 });
 
+// Create settings route
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: SettingsPage,
+});
+
+// Create transactions route
+const transactionsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/transactions',
+  component: TransactionsPage,
+});
+
 // Register all routes
 const routeTree = rootRoute.addChildren([
   dashboardRoute,
   importIndexRoute,
   importHistoryRoute,
+  settingsRoute,
+  transactionsRoute,
 ]);
 
 // Create the router instance
@@ -68,6 +88,9 @@ export function Router() {
 // Helper functions
 
 // This allows for proper code-splitting with React.lazy
+// Not used currently - commented out
+/*
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>;
 }
+*/

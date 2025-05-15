@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FieldMapping } from '@/lib/import/field-mapping-types';
 import { detectMapping, getSavedMappings, saveMapping, updateMapping } from '@/lib/import/field-mapping-service';
-import { previewMappedTransactions } from '@/lib/import/import-service';
+// Commented out as it's not used
+// import { previewMappedTransactions } from '@/lib/import/import-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,14 +15,15 @@ interface FieldMappingUIProps {
   headers: string[];
   onMappingChange: (mapping: FieldMapping) => void;
   initialMapping?: FieldMapping | null;
-  onPreviewGenerated?: (preview: any) => void;
+  // Preview generation is commented out for now
+  // onPreviewGenerated?: (preview: { mapping: FieldMapping }) => void;
 }
 
 export const FieldMappingUI: React.FC<FieldMappingUIProps> = ({
   headers,
   onMappingChange,
-  initialMapping,
-  onPreviewGenerated
+  initialMapping
+  // onPreviewGenerated
 }) => {
   // Use initialMapping only during initial render, not on every update
   const [mapping, setMapping] = useState<FieldMapping>(() =>
@@ -134,6 +136,8 @@ export const FieldMappingUI: React.FC<FieldMappingUIProps> = ({
     }
   };
 
+  // Commented out as it's not used yet
+  /*
   const handleGeneratePreview = () => {
     if (onPreviewGenerated) {
       // We need to pass the CSV data and mapping to generate a preview
@@ -141,6 +145,7 @@ export const FieldMappingUI: React.FC<FieldMappingUIProps> = ({
       onPreviewGenerated({ mapping });
     }
   };
+  */
 
   return (
     <div className="space-y-6">
@@ -381,13 +386,13 @@ export const FieldMappingUI: React.FC<FieldMappingUIProps> = ({
               />
             </div>
 
-            <div className="flex justify-between">
-              <div className="flex space-x-2">
+            <div className="flex justify-end">
                 {loadedMappingId ? (
-                  <>
+                  <div className="flex space-x-2">
                     <Button
                       onClick={handleUpdateMapping}
                       disabled={!mappingModified || isSaving}
+                      className="inline-block w-auto"
                     >
                       {isSaving ? (
                         <>
@@ -407,29 +412,31 @@ export const FieldMappingUI: React.FC<FieldMappingUIProps> = ({
                         setLoadedMappingId(undefined);
                         setMappingModified(false);
                       }}
+                      className="inline-block"
                     >
                       Cancel
                     </Button>
-                  </>
+                  </div>
                 ) : (
-                  <Button
-                    onClick={handleSaveMapping}
-                    disabled={!configName || isSaving}
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <SaveIcon className="h-4 w-4 mr-2" />
-                        Save Configuration
-                      </>
-                    )}
-                  </Button>
+                  <div className="inline-block">
+                    <Button
+                      onClick={handleSaveMapping}
+                      disabled={!configName || isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <SaveIcon className="h-4 w-4 mr-2" />
+                          Save Configuration
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 )}
-              </div>
             </div>
           </div>
         </CardContent>

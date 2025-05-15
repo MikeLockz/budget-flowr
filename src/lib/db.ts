@@ -12,6 +12,7 @@ export interface Transaction {
   type: 'income' | 'expense' | 'Capital Transfer' | 'Capital Inflow' | 'True Expense' | 'Capital Expense' | 'Reversed Capital Expense' | 'Reversed True Expense';
   status: 'completed' | 'pending' | 'upcoming';
   accountId?: string; // New field for version 2
+  archived?: boolean; // New field for version 7
 }
 
 export interface ImportSession {
@@ -111,6 +112,22 @@ export class BudgetFlowrDB extends Dexie {
     // Version 5: Add skippedCount to imports table
     this.version(5).stores({
       imports: 'id, date, fileName, totalCount, importedCount, duplicateCount, skippedCount'
+    });
+    
+    // Version 6: Ensure date is indexed for sorting in import history
+    this.version(6).stores({
+      imports: 'id, date, fileName, totalCount, importedCount, duplicateCount, skippedCount'
+    });
+    
+    // Version 7: Add archived field to transactions
+    this.version(7).stores({
+      transactions: 'id, date, categoryId, type, status, accountId, [date+amount+description], archived' // Added archived index
+    }).upgrade(tx => {
+      // Migration logic for existing transactions
+      return tx.table('transactions').toCollection().modify(transaction => {
+        // Set default archived value for existing transactions
+        transaction.archived = false;
+      });
     });
   }
 }

@@ -97,7 +97,7 @@ describe('Dashboard component', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the dashboard with title and add transaction button', () => {
+  it('renders the dashboard with title and reset filters button', () => {
     // Mock the useTransactionData hook to return loading state
     (useTransactionData as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       transactions: [],
@@ -110,8 +110,8 @@ describe('Dashboard component', () => {
     // Check if the dashboard title is rendered
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
 
-    // Check if the Add Transaction button is rendered
-    expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
+    // Check if the Reset Filters button is rendered
+    expect(screen.getByRole('button', { name: /reset filters/i })).toBeInTheDocument();
   });
 
   it('displays loading state when transactions are loading', () => {

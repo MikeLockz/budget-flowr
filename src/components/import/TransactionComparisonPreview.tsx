@@ -9,7 +9,7 @@ import { ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
 interface TransactionComparisonPreviewProps {
   previewData: PreviewData;
-  onImportComplete?: (result: any) => void;
+  onImportComplete?: (result: { insertedIds: string[]; duplicateCount: number; updatedCount: number; skippedCount: number; }) => void;
   onBack?: () => void;
 }
 
@@ -193,7 +193,7 @@ export const TransactionComparisonPreview: React.FC<TransactionComparisonPreview
                                 {Object.entries(originalData).map(([key, value]) => (
                                   <div key={key} className="flex justify-between sm:justify-start">
                                     <span className="font-medium mr-2">{key}:</span>
-                                    <span className="text-gray-700">{value}</span>
+                                    <span className="text-gray-700">{String(value)}</span>
                                   </div>
                                 ))}
                               </div>

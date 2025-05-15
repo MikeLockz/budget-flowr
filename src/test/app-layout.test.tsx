@@ -17,6 +17,17 @@ vi.mock('lucide-react', () => ({
   Sun: () => <div data-testid="sun-icon">Sun Icon</div>,
   Moon: () => <div data-testid="moon-icon">Moon Icon</div>,
   Monitor: () => <div data-testid="monitor-icon">Monitor Icon</div>,
+  BarChart: () => <div data-testid="bar-chart-icon">Bar Chart Icon</div>,
+  ListFilter: () => <div data-testid="list-filter-icon">List Filter Icon</div>,
+  Upload: () => <div data-testid="upload-icon">Upload Icon</div>,
+  Settings: () => <div data-testid="settings-icon">Settings Icon</div>,
+}));
+
+// Mock @tanstack/react-router
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({ children, to }: { children: React.ReactNode, to: string }) => 
+    <a href={to} data-testid={`router-link-${to}`}>{children}</a>,
+  useLocation: () => ({ pathname: '/' }),
 }));
 
 describe('AppLayout component', () => {

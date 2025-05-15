@@ -35,7 +35,37 @@ export class TransactionRepository extends BaseRepository<Transaction, string> {
     super(db.transactions);
   }
 
-  // Add any transaction-specific methods here
+  async getActiveTransactions(): Promise<Transaction[]> {
+    return this.table.filter(transaction => transaction.archived !== true).toArray();
+  }
+
+  async getArchivedTransactions(): Promise<Transaction[]> {
+    return this.table.filter(transaction => transaction.archived === true).toArray();
+  }
+
+  async archiveTransaction(id: string): Promise<void> {
+    await this.table.update(id, { archived: true });
+  }
+
+  async restoreTransaction(id: string): Promise<void> {
+    await this.table.update(id, { archived: false });
+  }
+
+  async bulkArchive(ids: string[]): Promise<void> {
+    return db.transaction('rw', this.table, async () => {
+      for (const id of ids) {
+        await this.archiveTransaction(id);
+      }
+    });
+  }
+
+  async bulkRestore(ids: string[]): Promise<void> {
+    return db.transaction('rw', this.table, async () => {
+      for (const id of ids) {
+        await this.restoreTransaction(id);
+      }
+    });
+  }
 }
 
 export class CategoryRepository extends BaseRepository<Category, string> {
@@ -68,7 +98,7 @@ export class ImportRepository extends BaseRepository<ImportSession, string> {
   }
 
   async getImportHistory(): Promise<ImportSession[]> {
-    return this.table.orderBy('timestamp').reverse().toArray();
+    return this.table.orderBy('date').reverse().toArray();
   }
 }
 
