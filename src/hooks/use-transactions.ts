@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, Transaction as TransactionType, Category } from '@/lib/db';
 import { transactionRepository } from '@/lib/repositories';
 import { useMemo } from 'react';
+import { useVisualizationSettings } from '@/lib/store/visualization-settings';
 
 const fetchTransactions = async (archived = false): Promise<TransactionType[]> => {
   return archived 
@@ -59,6 +60,8 @@ export const useTransactionData = (archived = false) => {
     }));
   }, [transactions, categories]);
 
+  const { typeClassifications } = useVisualizationSettings();
+  
   const categoryChartData = useMemo(() => {
     const expenseMap = new Map<string, number>();
     categories.forEach(c => {
@@ -67,10 +70,9 @@ export const useTransactionData = (archived = false) => {
     expenseMap.set('Uncategorized', 0);
 
     transactionsWithCategoryName.forEach(t => {
-      // Consider both 'expense' and expense-like types for category chart data
-      if (t.type === 'expense' ||
-          t.type === 'True Expense' ||
-          t.type === 'Capital Transfer') {
+      // Use transaction type classifications from visualization settings
+      const classification = typeClassifications[t.type] || 'uncategorized';
+      if (classification === 'expense') {
         const categoryName = expenseMap.has(t.categoryName) ? t.categoryName : 'Uncategorized';
         expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + t.amount);
       }
@@ -93,7 +95,7 @@ export const useTransactionData = (archived = false) => {
       barChartData,
       pieChartData,
     };
-  }, [transactionsWithCategoryName, categories]);
+  }, [transactionsWithCategoryName, categories, typeClassifications]);
 
   return {
     transactions: transactionsWithCategoryName,

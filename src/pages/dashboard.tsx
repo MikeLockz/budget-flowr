@@ -6,14 +6,23 @@ import { TransactionsGrid } from '@/components/data-grid/transactions-grid';
 import { useTransactionData } from '@/hooks/use-transactions';
 import { formatCurrency } from '@/lib/utils';
 import { useFilterContext } from '@/contexts/FilterContext';
+import { useVisualizationSettings } from '@/lib/store/visualization-settings';
 
-export const calculateTotalIncome = (transactions: Array<{ type: string; amount: number }> = []) => {
-  return transactions.filter(t => t.type === 'Capital Inflow').reduce((sum, t) => sum + t.amount, 0);
+export const calculateTotalIncome = (
+  transactions: Array<{ type: string; amount: number }> = [], 
+  typeClassifications: { [key: string]: string } = {}
+) => {
+  return transactions
+    .filter(t => typeClassifications[t.type] === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
 };
 
-export const calculateTotalExpenses = (transactions: Array<{ type: string; amount: number }> = []) => {
+export const calculateTotalExpenses = (
+  transactions: Array<{ type: string; amount: number }> = [],
+  typeClassifications: { [key: string]: string } = {}
+) => {
   return transactions
-    .filter(t => t.type === 'True Expense' || t.type === 'Capital Expense')
+    .filter(t => typeClassifications[t.type] === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 };
 
@@ -21,7 +30,10 @@ export const calculateBalance = (income: number, expenses: number) => {
   return income - expenses;
 };
 
-export const prepareMonthlyChartData = (transactions: Array<{ date: string; type: string; amount: number }> = []) => {
+export const prepareMonthlyChartData = (
+  transactions: Array<{ date: string; type: string; amount: number }> = [],
+  typeClassifications: { [key: string]: string } = {}
+) => {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   if (transactions.length === 0) {
@@ -100,9 +112,11 @@ export const prepareMonthlyChartData = (transactions: Array<{ date: string; type
     const month = date.getMonth();
     const monthKey = `${year}-${month}`;
 
-    if (t.type === 'Capital Inflow') {
+    // Use transaction type classifications from visualization settings
+    const classification = typeClassifications[t.type];
+    if (classification === 'income') {
       incomeByMonth.set(monthKey, (incomeByMonth.get(monthKey) || 0) + t.amount);
-    } else if (t.type === 'True Expense' || t.type === 'Capital Expense') {
+    } else if (classification === 'expense') {
       expenseByMonth.set(monthKey, (expenseByMonth.get(monthKey) || 0) + t.amount);
     }
   });
@@ -130,7 +144,11 @@ export const prepareMonthlyChartData = (transactions: Array<{ date: string; type
   };
 };
 
-export const prepareCategoryChartData = (transactions: Array<{ categoryName?: string; amount: number }> = [], categories: string[] = []) => {
+export const prepareCategoryChartData = (
+  transactions: Array<{ categoryName?: string; amount: number; type?: string }> = [], 
+  categories: string[] = [],
+  typeClassifications: { [key: string]: string } = {}
+) => {
   const expenseMap = new Map<string, number>();
   categories.forEach(c => {
     expenseMap.set(c, 0);
@@ -138,7 +156,8 @@ export const prepareCategoryChartData = (transactions: Array<{ categoryName?: st
   expenseMap.set('Uncategorized', 0);
 
   transactions.forEach(t => {
-    if (t.amount && t.categoryName) {
+    // Only include transactions classified as expenses
+    if (t.amount && t.categoryName && t.type && typeClassifications[t.type] === 'expense') {
       const categoryName = expenseMap.has(t.categoryName) ? t.categoryName : 'Uncategorized';
       expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + t.amount);
     }
@@ -166,6 +185,7 @@ export const prepareCategoryChartData = (transactions: Array<{ categoryName?: st
 export const Dashboard = () => {
   const { transactions, categoryChartData, isLoading } = useTransactionData(false); // Explicitly get non-archived transactions
   const { visibleTransactionIds, resetFilters } = useFilterContext();
+  const { typeClassifications } = useVisualizationSettings();
 
   // Ensure transactions is always an array
   const transactionsArray = transactions || [];
@@ -181,22 +201,27 @@ export const Dashboard = () => {
   console.log('DASHBOARD: Filtered transactions:', displayTransactions.length);
 
   // Calculate totals based on filtered transactions
-  const totalIncome = calculateTotalIncome(displayTransactions);
-  const totalExpenses = calculateTotalExpenses(displayTransactions);
+  const totalIncome = calculateTotalIncome(displayTransactions, typeClassifications);
+  const totalExpenses = calculateTotalExpenses(displayTransactions, typeClassifications);
   const balance = calculateBalance(totalIncome, totalExpenses);
 
   // Prepare chart data based on filtered transactions
-  const { months, lineChartData } = prepareMonthlyChartData(displayTransactions);
+  const { months, lineChartData } = prepareMonthlyChartData(displayTransactions, typeClassifications);
 
   // Prepare category chart data based on filtered transactions
   // Map transactions to include categoryName and amount for chart data preparation
-  const transactionsWithCategoryNameAndAmount = displayTransactions.map((t: { categoryName?: string; amount?: number }) => ({
+  const transactionsWithCategoryNameAndAmount = displayTransactions.map((t: { categoryName?: string; amount?: number; type?: string }) => ({
     ...t,
     categoryName: t.categoryName || 'Uncategorized',
     amount: t.amount || 0,
+    type: t.type,
   }));
 
-  const filteredCategoryChartData = prepareCategoryChartData(transactionsWithCategoryNameAndAmount, categoryChartData.categories);
+  const filteredCategoryChartData = prepareCategoryChartData(
+    transactionsWithCategoryNameAndAmount, 
+    categoryChartData.categories,
+    typeClassifications
+  );
 
   // Prepare calendar heatmap data
   const prepareCalendarHeatmapData = (
