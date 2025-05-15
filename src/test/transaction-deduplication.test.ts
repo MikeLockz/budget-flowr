@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { db } from '../lib/db';
 import { isDuplicateTransaction, updateDuplicateTransaction } from '../lib/import/transaction-deduplication';
 
@@ -43,7 +43,7 @@ describe('Transaction Deduplication', () => {
       const mockFirst = vi.fn().mockResolvedValue(existingTransaction);
       const mockEquals = vi.fn().mockReturnValue({ first: mockFirst });
       const mockWhere = vi.fn().mockReturnValue({ equals: mockEquals });
-      (db.transactions.where as Mock) = mockWhere;
+      (db.transactions.where as ReturnType<typeof vi.fn>) = mockWhere;
 
       const transaction = {
         date: '2025-01-01',
@@ -64,7 +64,7 @@ describe('Transaction Deduplication', () => {
       const mockFirst = vi.fn().mockResolvedValue(undefined);
       const mockEquals = vi.fn().mockReturnValue({ first: mockFirst });
       const mockWhere = vi.fn().mockReturnValue({ equals: mockEquals });
-      (db.transactions.where as Mock) = mockWhere;
+      (db.transactions.where as ReturnType<typeof vi.fn>) = mockWhere;
 
       const transaction = {
         date: '2025-01-01',

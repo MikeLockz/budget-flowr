@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, Mock } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { parseCSV } from '../lib/import/csv-parser';
 import Papa from 'papaparse';
 
@@ -17,15 +17,17 @@ vi.mock('papaparse', () => {
 describe('CSV Parser', () => {
   it('should parse CSV data correctly', async () => {
     // Mock implementation
-(Papa.parse as unknown as Mock).mockImplementation((file: File, options: { complete: (results: { data: Array<Record<string, string>>; errors: Array<{ message: string; row: number }> }) => void }) => {
-  options.complete({
-        data: [
-          { date: '2025-01-01', description: 'Test', amount: '100.00' },
-          { date: '2025-01-02', description: 'Test 2', amount: '200.00' },
-        ],
-        errors: []
-      });
+(Papa.parse as ReturnType<typeof vi.fn>).mockImplementation(
+  (_file: File, options: { complete: (results: { data: Array<Record<string, string>>; errors: Array<{ message: string; row: number }> }) => void }) => {
+    options.complete({
+      data: [
+        { date: '2025-01-01', description: 'Test', amount: '100.00' },
+        { date: '2025-01-02', description: 'Test 2', amount: '200.00' },
+      ],
+      errors: []
     });
+  }
+);
 
     const mockFile = new File([''], 'test.csv', { type: 'text/csv' });
     const result = await parseCSV(mockFile);
@@ -37,7 +39,7 @@ describe('CSV Parser', () => {
 
   it('should reject with errors if parsing fails', async () => {
     // Mock implementation for error case
-(Papa.parse as unknown as Mock).mockImplementation((file: File, options: { complete: (results: { data: Array<Record<string, string>>; errors: Array<{ message: string; row: number }> }) => void }) => {
+(Papa.parse as unknown as ReturnType<typeof vi.fn>).mockImplementation((_file, options: { complete: (results: { data: Array<Record<string, string>>; errors: Array<{ message: string; row: number }> }) => void }) => {
   options.complete({
         data: [],
         errors: [{ message: 'Parse error', row: 1 }]

@@ -6,7 +6,7 @@ interface TransactionPreviewProps {
 }
 
 export const TransactionPreview: React.FC<TransactionPreviewProps> = ({ previewData }) => {
-  const { rawData, mappedTransactions } = previewData;
+  const { rawData, mappedTransactions, skippedRows } = previewData;
 
   return (
     <div className="space-y-6">
@@ -112,6 +112,43 @@ export const TransactionPreview: React.FC<TransactionPreviewProps> = ({ previewD
           </table>
         </div>
       </div>
+
+      {/* Skipped Rows */}
+      {skippedRows && skippedRows.length > 0 && (
+        <div className="border p-4 rounded-md bg-red-50">
+          <h3 className="font-medium mb-4 text-red-700">Skipped Rows (Missing Critical Fields)</h3>
+          <p className="mb-2 text-sm text-gray-700">
+            The following rows will be skipped during import because they are missing critical fields (date, amount, or account):
+          </p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {skippedRows.length > 0 ? Object.keys(skippedRows[0]).map(header => (
+                    <th
+                      key={header}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {header}
+                    </th>
+                  )) : null}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {skippedRows.map((row, index) => (
+                  <tr key={index}>
+                    {Object.values(row).map((value, i) => (
+                      <td key={i} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {value}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

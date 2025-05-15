@@ -9,15 +9,25 @@ import { Transaction } from '@/lib/db';
 export function applyMapping(
   csvData: ParsedCSVData[],
   mapping: FieldMapping
-): Transaction[] {
-  return csvData.map(row => {
+): { transactions: Transaction[], skippedRows: ParsedCSVData[] } {
+  const transactions: Transaction[] = [];
+  const skippedRows: ParsedCSVData[] = [];
+
+  csvData.forEach(row => {
     const dateValue = mapping.mappings.date ? row[mapping.mappings.date] : '';
+    const amountValue = mapping.mappings.amount ? row[mapping.mappings.amount] : '';
+    const accountValue = mapping.mappings.accountId ? row[mapping.mappings.accountId] : '';
+
+    // Skip rows with missing critical fields
+    if (!dateValue || !amountValue || !accountValue) {
+      skippedRows.push(row);
+      return;
+    }
+
     const descValue = mapping.mappings.description ? row[mapping.mappings.description] : 'Imported Transaction';
-    const amountValue = mapping.mappings.amount ? row[mapping.mappings.amount] : '0';
     const typeValue = mapping.mappings.type ? row[mapping.mappings.type] : undefined;
     const categoryValue = mapping.mappings.categoryId ? row[mapping.mappings.categoryId] : 'uncategorized';
     const statusValue = mapping.mappings.status ? row[mapping.mappings.status] : 'completed';
-    const accountValue = mapping.mappings.accountId ? row[mapping.mappings.accountId] : 'default';
 
     let amount = parseAmount(amountValue);
     if (mapping.options.invertAmount) {
@@ -35,7 +45,7 @@ export function applyMapping(
 
     const formattedDate = formatDate(dateValue);
 
-    return {
+    transactions.push({
       id: generateUUID(),
       date: formattedDate,
       description: descValue,
@@ -44,8 +54,10 @@ export function applyMapping(
       type,
       status: statusValue as 'completed' | 'pending' | 'upcoming',
       accountId: accountValue
-    };
+    });
   });
+
+  return { transactions, skippedRows };
 }
 
 function parseAmount(amountStr: string): number {
@@ -104,6 +116,18 @@ export async function saveMapping(mapping: FieldMapping): Promise<string> {
 }
 
 /**
+ * Update an existing mapping configuration in IndexedDB.
+ */
+export async function updateMapping(mapping: FieldMapping): Promise<string> {
+  if (!mapping.id) {
+    throw new Error('Cannot update a mapping without an ID');
+  }
+
+  await db.table('fieldMappings').put(mapping);
+  return mapping.id;
+}
+
+/**
  * Get all saved mapping configurations.
  */
 export async function getSavedMappings(): Promise<FieldMapping[]> {
@@ -121,9 +145,11 @@ export function generatePreview(
   mapping: FieldMapping
 ): PreviewData {
   const previewRows = csvData.slice(0, 5);
+  const { transactions, skippedRows } = applyMapping(previewRows, mapping);
   return {
     rawData: previewRows,
-    mappedTransactions: applyMapping(previewRows, mapping)
+    mappedTransactions: transactions,
+    skippedRows
   };
 }
 

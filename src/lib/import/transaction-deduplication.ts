@@ -10,7 +10,7 @@ export async function isDuplicateTransaction(transaction: {
   date: string;
   amount: number;
   description: string;
-}): Promise<{ isDuplicate: boolean; existingTransaction?: TransactionType }> {
+}): Promise<{ isDuplicate: boolean; existingTransaction?: Transaction }> {
   // Use the compound index to efficiently check for duplicates
   const existingTransaction = await db.transactions
     .where('[date+amount+description]')
@@ -134,7 +134,11 @@ export async function updateDuplicateTransaction(
 
     // Update field if value is different
     if (existingTransaction[key as keyof Transaction] !== value) {
-      (updatedTransaction as Record<string, unknown>)[key] = value;
+      // Update the field with type safety
+      if (key in existingTransaction) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (updatedTransaction[key as keyof Transaction] as any) = value;
+      }
     }
   }
 
