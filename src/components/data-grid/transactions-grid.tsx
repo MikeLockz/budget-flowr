@@ -1,6 +1,6 @@
 import React from 'react';
 import { AgGridBase } from './ag-grid-base';
-import { useFilterContext } from '@/contexts/FilterContext';
+import { useFilterContext } from '@/contexts/useFilterContext';
 import { useVisualizationSettings } from '@/lib/store/visualization-settings';
 
 interface TransactionsGridProps {
