@@ -16,6 +16,7 @@ import {
   useRestoreTransaction,
   useBulkRestoreTransactions
 } from '@/hooks/use-transactions';
+import { useVisualizationSettings } from '@/lib/store/visualization-settings';
 import { useCategories } from '@/hooks/use-transactions';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -35,6 +36,7 @@ const TransactionsPage: React.FC = () => {
   const bulkArchive = useBulkArchiveTransactions();
   const restoreTransaction = useRestoreTransaction();
   const bulkRestore = useBulkRestoreTransactions();
+  const { typeClassifications } = useVisualizationSettings();
   
   const gridRef = useRef<AgGridReact>(null);
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
@@ -137,22 +139,17 @@ const TransactionsPage: React.FC = () => {
       editable: true,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: {
-        values: [
-          'income', 
-          'expense', 
-          'Capital Transfer', 
-          'Capital Inflow', 
-          'True Expense', 
-          'Capital Expense', 
-          'Reversed Capital Expense', 
-          'Reversed True Expense'
-        ],
+        values: Object.keys(typeClassifications),
       },
+      
       cellRenderer: (params: { value?: string }) => {
-        if (params.value === 'income') {
-          return <span className="text-green-600 font-semibold">Income</span>;
-        } else if (params.value === 'expense') {
-          return <span className="text-red-600 font-semibold">Expense</span>;
+        if (!params.value) return <span>Unknown</span>;
+        
+        const classification = typeClassifications[params.value];
+        if (classification === 'income') {
+          return <span className="text-green-600 font-semibold">{params.value}</span>;
+        } else if (classification === 'expense') {
+          return <span className="text-red-600 font-semibold">{params.value}</span>;
         }
         return <span>{params.value}</span>;
       },

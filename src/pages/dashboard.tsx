@@ -306,7 +306,6 @@ export const Dashboard = () => {
         <Card className="col-span-2">
           <CardHeader>
             <CardTitle>Income vs Expenses</CardTitle>
-            <CardDescription>Monthly comparison for the current year</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
             <LineChart data={lineChartData} xAxisData={months} />
@@ -315,7 +314,6 @@ export const Dashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle>Expenses by Category</CardTitle>
-            <CardDescription>Current month breakdown</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
             <BarChart data={filteredCategoryChartData.barChartData} xAxisData={filteredCategoryChartData.categories} />
