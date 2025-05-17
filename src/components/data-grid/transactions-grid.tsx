@@ -1,6 +1,7 @@
 import React from 'react';
 import { AgGridBase } from './ag-grid-base';
-import { useFilterContext } from '@/contexts/FilterContext';
+import { useFilterContext } from '@/contexts/useFilterContext';
+import { useVisualizationSettings } from '@/lib/store/visualization-settings';
 
 interface TransactionsGridProps {
   transactions: Array<{
@@ -17,6 +18,7 @@ interface TransactionsGridProps {
 
 export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions }) => {
   const { setVisibleTransactionIds } = useFilterContext();
+  const { typeClassifications } = useVisualizationSettings();
 
   const columnDefs = [
     { field: 'id', headerName: 'ID', width: 70 },
@@ -50,13 +52,15 @@ export const TransactionsGrid: React.FC<TransactionsGridProps> = ({ transactions
       headerName: 'Type',
       filter: 'agTextColumnFilter',
       cellRenderer: (params: { value?: string }) => {
-        // Keep existing styling for income and expense
-        if (params.value === 'income') {
-          return <span className="text-green-600 font-semibold">Income</span>;
-        } else if (params.value === 'expense') {
-          return <span className="text-red-600 font-semibold">Expense</span>;
+        if (!params.value) return <span>Unknown</span>;
+        
+        const classification = typeClassifications[params.value];
+        if (classification === 'income') {
+          return <span className="text-green-600 font-semibold">{params.value}</span>;
+        } else if (classification === 'expense') {
+          return <span className="text-red-600 font-semibold">{params.value}</span>;
         }
-        // Use default styling for new transaction types
+        // Use default styling for uncategorized transaction types
         return <span>{params.value}</span>;
       },
     },

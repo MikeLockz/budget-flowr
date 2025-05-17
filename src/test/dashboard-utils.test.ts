@@ -4,7 +4,7 @@ import {
   calculateTotalExpenses, 
   calculateBalance,
   prepareMonthlyChartData
-} from '../pages/dashboard';
+} from '../lib/dashboard-utils';
 import { Transaction } from '../lib/db';
 
 describe('Dashboard utility functions', () => {

@@ -5,6 +5,7 @@ import { Card } from '../components/ui/card';
 import { db } from '../lib/db';
 import { queryClient } from '../lib/query-client';
 import { useAppStore } from '../store/app-store';
+import { VisualizationSettings } from '../components/settings/VisualizationSettings';
 
 // Modal components
 interface ModalProps {
@@ -180,6 +181,11 @@ export const SettingsPage = () => {
         </div>
         <Settings className="h-10 w-10 text-muted-foreground" />
       </div>
+      
+      {/* Visualization Settings Section */}
+      <React.Suspense fallback={<div>Loading visualization settings...</div>}>
+        <VisualizationSettings />
+      </React.Suspense>
       
       <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4">Data Management</h2>

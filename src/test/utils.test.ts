@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { cn, formatCurrency, formatDate, truncateString, generateId } from '../lib/utils';
+import { cn, formatCurrency, formatDate, truncateString, generateId, formatDollarWholeNumber } from '../lib/utils';
 
 describe('cn function', () => {
   it('should combine class names correctly', () => {
@@ -45,6 +45,22 @@ describe('formatCurrency function', () => {
     // Use regex for French locale to avoid potential invisible character issues
     const frResult = formatCurrency(1000, 'EUR', 'fr-FR');
     expect(frResult).toMatch(/1\s*000,00\s*€/);
+  });
+});
+
+describe('formatDollarWholeNumber function', () => {
+  it('should format numbers as whole dollar amounts', () => {
+    expect(formatDollarWholeNumber(1000)).toBe('$1,000');
+    expect(formatDollarWholeNumber(1234.56)).toBe('$1,235');
+    expect(formatDollarWholeNumber(0)).toBe('$0');
+    expect(formatDollarWholeNumber(-1000)).toBe('-$1,000');
+  });
+  
+  it('should round numbers correctly', () => {
+    expect(formatDollarWholeNumber(1234.49)).toBe('$1,234');
+    expect(formatDollarWholeNumber(1234.5)).toBe('$1,235');
+    expect(formatDollarWholeNumber(0.4)).toBe('$0');
+    expect(formatDollarWholeNumber(0.5)).toBe('$1');
   });
 });
 
@@ -98,6 +114,15 @@ describe('truncateString function', () => {
     expect(truncateString('Test', 0)).toBe('...');
     expect(truncateString('Test', 1)).toBe('T...');
     expect(truncateString('Test', 4)).toBe('Test');
+  });
+  
+  it('should handle negative length values', () => {
+    expect(truncateString('Test', -5)).toBe('...');
+  });
+  
+  it('should handle special characters correctly', () => {
+    expect(truncateString('Special 😊 characters', 10)).toBe('Special 😊...');
+    expect(truncateString('Unicode: 汉字', 10)).toBe('Unicode: 汉...');
   });
 });
 

@@ -68,6 +68,7 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 // Create the router instance
+// eslint-disable-next-line react-refresh/only-export-components
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
@@ -84,13 +85,3 @@ declare module '@tanstack/react-router' {
 export function Router() {
   return <RouterProvider router={router} />;
 }
-
-// Helper functions
-
-// This allows for proper code-splitting with React.lazy
-// Not used currently - commented out
-/*
-function LazyLoad({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>;
-}
-*/
