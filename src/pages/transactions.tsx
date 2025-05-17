@@ -123,13 +123,13 @@ const TransactionsPage: React.FC = () => {
       },
       valueFormatter: (params) => {
         if (!params.value) return 'Uncategorized';
-        const category = categories.find(c => c.id === params.value);
+        const category = categoryLookup[params.value];
         return category ? category.name : 'Uncategorized';
       },
       cellRenderer: (params: { value?: string }) => {
         if (!params.value) return <Badge variant="secondary">Uncategorized</Badge>;
         
-        const category = categories.find(c => c.id === params.value);
+        const category = categoryLookup[params.value];
         const categoryName = category ? category.name : 'Uncategorized';
         const dynamicIndex = categories.findIndex(c => c.name === categoryName) + 1; // Use position-based index
         const color = storedColorMap[categoryName] || getCategoryColor(categoryName, storedColorMap, dynamicIndex);
