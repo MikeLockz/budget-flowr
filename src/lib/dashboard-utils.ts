@@ -147,7 +147,7 @@ export const prepareCategoryChartData = (
 
   transactions.forEach(t => {
     // Only include transactions classified as expenses
-    if (t.amount && t.categoryName && t.type && typeClassifications[t.type] === 'expense') {
+    if (typeof t.amount === 'number' && t.categoryName && t.type && typeClassifications[t.type] === 'expense') {
       const categoryName = expenseMap.has(t.categoryName) ? t.categoryName : 'Uncategorized';
       expenseMap.set(categoryName, (expenseMap.get(categoryName) || 0) + t.amount);
     }
