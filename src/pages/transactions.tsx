@@ -131,7 +131,8 @@ const TransactionsPage: React.FC = () => {
         
         const category = categories.find(c => c.id === params.value);
         const categoryName = category ? category.name : 'Uncategorized';
-        const color = storedColorMap[categoryName] || getCategoryColor(categoryName, storedColorMap, 0);
+        const dynamicIndex = categories.findIndex(c => c.name === categoryName) + 1; // Use position-based index
+        const color = storedColorMap[categoryName] || getCategoryColor(categoryName, storedColorMap, dynamicIndex);
         
         if (color) {
           return (
