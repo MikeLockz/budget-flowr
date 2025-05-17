@@ -270,4 +270,14 @@ describe('Dashboard component', () => {
     expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
     expect(screen.getByTestId('data-grid')).toBeInTheDocument();
   });
+
+  it('renders date filter buttons', () => {
+    renderWithProvider(<Dashboard />);
+
+    // Check if date filter buttons are rendered
+    expect(screen.getByRole('button', { name: /last 30 days/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /previous month/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /previous 2 months/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /previous 6 months/i })).toBeInTheDocument();
+  });
 });

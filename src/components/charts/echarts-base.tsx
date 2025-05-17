@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { init, getInstanceByDom } from 'echarts';
 import type { EChartsOption, ECharts } from 'echarts';
+import type { CallbackDataParams } from 'echarts/types/dist/shared';
 import { formatDollarWholeNumber } from '@/lib/utils';
 
 interface EChartsProps {
@@ -146,13 +147,15 @@ export const LineChart: React.FC<{
  * Bar chart component
  */
 export const BarChart: React.FC<{
-  data: { name: string; data: number[] }[];
+  data: { name: string; data: number[]; itemStyle?: Record<string, unknown> }[];
   xAxisData: string[];
   title?: string;
   style?: React.CSSProperties;
   className?: string;
   theme?: 'light' | 'dark';
-}> = ({ data, xAxisData, title, style, className, theme }) => {
+  horizontal?: boolean; // New prop for controlling orientation
+  onCategoryClick?: (category: string) => void; // Callback for category click
+}> = ({ data, xAxisData, title, style, className, theme, horizontal = false, onCategoryClick }) => {
   const option: EChartsOption = {
     title: title ? { text: title } : undefined,
     tooltip: {
@@ -160,43 +163,96 @@ export const BarChart: React.FC<{
       axisPointer: {
         type: 'shadow',
       },
+      formatter: (params) => {
+        if (!Array.isArray(params)) return '';
+        const item = params[0] as CallbackDataParams;
+        const category = horizontal ? 
+          (item.name as string) : 
+          ((item as CallbackDataParams & { axisValue: string }).axisValue);
+        const value = item.value;
+        return `${category}: ${formatDollarWholeNumber(value as number)}`;
+      },
     },
     legend: {
-      data: data.map(item => item.name),
+      show: false,
     },
     grid: {
-      left: '3%',
+      left: horizontal ? '15%' : '3%', // More space for category labels on left side
       right: '4%',
       bottom: '3%',
+      top: '5%', // Less top spacing since legend is hidden
       containLabel: true,
     },
-    xAxis: {
+    // For horizontal bars, swap the axis configuration
+    xAxis: horizontal ? {
+      type: 'value',
+      axisLabel: {
+        formatter: (value: number) => formatDollarWholeNumber(value)
+      }
+    } : {
       type: 'category',
       data: xAxisData,
     },
-    yAxis: {
+    yAxis: horizontal ? {
+      type: 'category',
+      data: xAxisData,
+      axisLabel: {
+        width: 100,
+        overflow: 'truncate',
+        margin: 16, // Add more space between labels
+      },
+      inverse: true, // Display categories from top to bottom (largest at top)
+    } : {
       type: 'value',
     },
     series: data.map(item => ({
       name: item.name,
       type: 'bar',
       data: item.data,
+      label: {
+        show: false
+      },
+      itemStyle: item.itemStyle || {
+        borderRadius: 2
+      },
+      barWidth: horizontal ? '70%' : undefined, // Thicker bars with more padding
+      barGap: '20%', // Space between bars
     })),
   };
   
-  return <EChartsBase option={option} style={style} className={className} theme={theme} />;
+  const handleChartReady = (chart: ECharts) => {
+    if (onCategoryClick) {
+      chart.on('click', (params: CallbackDataParams) => {
+        // For horizontal bar chart, the category is in the 'name' property
+        // For vertical bar chart, the category is in the 'axisValue' property
+        const category = horizontal ? 
+          (params.name as string) : 
+          ((params as CallbackDataParams & { axisValue: string }).axisValue);
+        onCategoryClick(category);
+      });
+    }
+  };
+  
+  return <EChartsBase 
+    option={option} 
+    style={style} 
+    className={className} 
+    theme={theme} 
+    onChartReady={handleChartReady}
+  />;
 };
 
 /**
  * Pie chart component
  */
 export const PieChart: React.FC<{
-  data: { name: string; value: number }[];
+  data: { name: string; value: number; itemStyle?: Record<string, unknown> }[];
   title?: string;
   style?: React.CSSProperties;
   className?: string;
   theme?: 'light' | 'dark';
-}> = ({ data, title, style, className, theme }) => {
+  onCategoryClick?: (category: string) => void; // Callback for category click
+}> = ({ data, title, style, className, theme, onCategoryClick }) => {
   const option: EChartsOption = {
     title: title ? { text: title } : undefined,
     tooltip: {
@@ -232,10 +288,33 @@ export const PieChart: React.FC<{
         labelLine: {
           show: false,
         },
-        data: data,
+        data: data.map(item => ({
+          ...item,
+          // Apply default styles if no itemStyle is provided
+          itemStyle: item.itemStyle || {
+            borderRadius: 4,
+            borderWidth: 2,
+          }
+        })),
       },
     ],
   };
   
-  return <EChartsBase option={option} style={style} className={className} theme={theme} />;
+  const handleChartReady = (chart: ECharts) => {
+    if (onCategoryClick) {
+      chart.on('click', (params: CallbackDataParams) => {
+        // For pie chart, the category is in the 'name' property
+        const category = params.name as string;
+        onCategoryClick(category);
+      });
+    }
+  };
+  
+  return <EChartsBase 
+    option={option} 
+    style={style} 
+    className={className} 
+    theme={theme} 
+    onChartReady={handleChartReady}
+  />;
 };

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
@@ -7,7 +7,7 @@ import {
   GridApi, 
   GetRowIdParams
 } from 'ag-grid-community';
-import { Transaction } from '@/lib/db';
+import { Transaction, Category } from '@/lib/db';
 import { 
   useTransactionData, 
   useUpdateTransaction, 
@@ -19,8 +19,11 @@ import {
 import { useVisualizationSettings } from '@/lib/store/visualization-settings';
 import { useCategories } from '@/hooks/use-transactions';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
+import { getTextColorForBackground } from '@/lib/category-colors';
+import { useCategoryColors, getCategoryColor } from '@/lib/store/category-colors';
 
 // Extend Transaction with categoryName for display
 interface TransactionWithCategory extends Transaction {
@@ -37,6 +40,27 @@ const TransactionsPage: React.FC = () => {
   const restoreTransaction = useRestoreTransaction();
   const bulkRestore = useBulkRestoreTransactions();
   const { typeClassifications } = useVisualizationSettings();
+  
+  // Create category lookup for efficient access by ID
+  const categoryLookup = useMemo(() => {
+    const lookup: Record<string, Category> = {};
+    categories.forEach(category => {
+      lookup[category.id] = category;
+    });
+    return lookup;
+  }, [categories]);
+  
+  // Create category name list and get color mapping from store
+  const categoryNames = useMemo(() => categories.map(cat => cat.name), [categories]);
+  const { colorMap: storedColorMap } = useCategoryColors();
+  
+  // Initialize colors for any categories that don't have saved colors
+  useEffect(() => {
+    if (categoryNames.length > 0) {
+      const { generateColors } = useCategoryColors.getState();
+      generateColors(categoryNames);
+    }
+  }, [categoryNames]);
   
   const gridRef = useRef<AgGridReact>(null);
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
@@ -108,8 +132,33 @@ const TransactionsPage: React.FC = () => {
       },
       valueFormatter: (params) => {
         if (!params.value) return 'Uncategorized';
-        const category = categories.find(c => c.id === params.value);
+        const category = categoryLookup[params.value];
         return category ? category.name : 'Uncategorized';
+      },
+      cellRenderer: (params: { value?: string }) => {
+        if (!params.value) return <Badge variant="secondary">Uncategorized</Badge>;
+        
+        const category = categoryLookup[params.value];
+        const categoryName = category ? category.name : 'Uncategorized';
+        const dynamicIndex = categories.findIndex(c => c.name === categoryName) + 1; // Use position-based index
+        const color = storedColorMap[categoryName] || getCategoryColor(categoryName, storedColorMap, dynamicIndex);
+        
+        if (color) {
+          return (
+            <Badge 
+              style={{ 
+                backgroundColor: color,
+                color: getTextColorForBackground(color),
+                borderColor: 'transparent'
+              }}
+            >
+              {categoryName}
+            </Badge>
+          );
+        }
+        
+        // Default badge for categories without a specific color
+        return <Badge variant="secondary">{categoryName}</Badge>;
       },
     },
     {

@@ -134,6 +134,9 @@ export const prepareMonthlyChartData = (
   };
 };
 
+import { useCategoryColors, getCategoryColor } from '@/lib/store/category-colors';
+import type { CallbackDataParams } from 'echarts/types/dist/shared';
+
 export const prepareCategoryChartData = (
   transactions: Array<{ categoryName?: string; amount: number; type?: string }> = [], 
   categories: string[] = [],
@@ -153,21 +156,46 @@ export const prepareCategoryChartData = (
     }
   });
 
-  const categoriesList = Array.from(expenseMap.keys());
-  const categoryExpenses = Array.from(expenseMap.values());
+  // Create an array of [category, amount] pairs for sorting
+  const categoryAmounts = Array.from(expenseMap.entries())
+    .filter(([_, amount]) => amount > 0)  // Remove zero-value categories
+    .sort((a, b) => b[1] - a[1]);  // Sort in descending order by amount
+
+  // Extract sorted categories and values
+  const categoriesList = categoryAmounts.map(([name]) => name);
+  const categoryExpenses = categoryAmounts.map(([_, amount]) => amount);
+
+  // Get the stored category colors
+  const { colorMap } = useCategoryColors.getState();
+
+  // Generate colors array for the chart
+  const categoryColors = categoriesList.map((category, index) => 
+    getCategoryColor(category, colorMap, index)
+  );
 
   const barChartData = [
-    { name: 'Expenses', data: categoryExpenses },
+    { 
+      name: 'Expenses', 
+      data: categoryExpenses,
+      itemStyle: {
+        color: (params: CallbackDataParams) => categoryColors[params.dataIndex]
+      }
+    },
   ];
 
+  // Create pie chart data from the sorted categories with consistent colors
   const pieChartData = categoriesList.map((name, index) => ({
     name,
     value: categoryExpenses[index],
+    itemStyle: {
+      color: categoryColors[index]
+    }
   }));
 
   return {
     categories: categoriesList,
     barChartData,
     pieChartData,
+    categoryColors, // Add colors to the return value for potential use elsewhere
   };
 };

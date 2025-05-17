@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useVisualizationSettings } from '@/lib/store/visualization-settings';
 import { TransactionTypeSelector } from './TransactionTypeSelector';
+import { CategoryColorPicker } from './CategoryColorPicker';
 import { BarChart4, RefreshCw, Save } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -111,6 +112,7 @@ export function VisualizationSettings() {
         <TabsList>
           <TabsTrigger value="income">Income Types</TabsTrigger>
           <TabsTrigger value="expense">Expense Types</TabsTrigger>
+          <TabsTrigger value="colors">Category Colors</TabsTrigger>
         </TabsList>
         
         <TabsContent value="income" className="space-y-4 mt-4">
@@ -125,6 +127,23 @@ export function VisualizationSettings() {
               onChange={handleIncomeTypesChange}
               classification="income"
             />
+            
+            <div className="flex justify-end mt-6 space-x-2">
+              <Button
+                variant="outline"
+                onClick={handleResetToDefaults}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reset to Defaults
+              </Button>
+              <Button
+                disabled={!hasChanges}
+                onClick={handleSaveChanges}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </Button>
+            </div>
           </div>
         </TabsContent>
         
@@ -140,26 +159,30 @@ export function VisualizationSettings() {
               onChange={handleExpenseTypesChange}
               classification="expense"
             />
+            
+            <div className="flex justify-end mt-6 space-x-2">
+              <Button
+                variant="outline"
+                onClick={handleResetToDefaults}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reset to Defaults
+              </Button>
+              <Button
+                disabled={!hasChanges}
+                onClick={handleSaveChanges}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </Button>
+            </div>
           </div>
         </TabsContent>
+        
+        <TabsContent value="colors" className="mt-4">
+          <CategoryColorPicker />
+        </TabsContent>
       </Tabs>
-      
-      <div className="flex justify-end mt-6 space-x-2">
-        <Button
-          variant="outline"
-          onClick={handleResetToDefaults}
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Reset to Defaults
-        </Button>
-        <Button
-          disabled={!hasChanges}
-          onClick={handleSaveChanges}
-        >
-          <Save className="mr-2 h-4 w-4" />
-          Save Changes
-        </Button>
-      </div>
     </Card>
   );
 }
