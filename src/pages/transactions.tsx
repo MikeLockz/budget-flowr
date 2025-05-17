@@ -7,7 +7,7 @@ import {
   GridApi, 
   GetRowIdParams
 } from 'ag-grid-community';
-import { Transaction } from '@/lib/db';
+import { Transaction, Category } from '@/lib/db';
 import { 
   useTransactionData, 
   useUpdateTransaction, 
@@ -40,6 +40,15 @@ const TransactionsPage: React.FC = () => {
   const restoreTransaction = useRestoreTransaction();
   const bulkRestore = useBulkRestoreTransactions();
   const { typeClassifications } = useVisualizationSettings();
+  
+  // Create category lookup for efficient access by ID
+  const categoryLookup = useMemo(() => {
+    const lookup: Record<string, Category> = {};
+    categories.forEach(category => {
+      lookup[category.id] = category;
+    });
+    return lookup;
+  }, [categories]);
   
   // Create category name list and get color mapping from store
   const categoryNames = useMemo(() => categories.map(cat => cat.name), [categories]);
