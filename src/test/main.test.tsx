@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderApp } from '../lib/render-utils';
 import { initializeDatabase } from '../lib/db-utils';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 
 // Mock dependencies
 vi.mock('../lib/render-utils', () => ({

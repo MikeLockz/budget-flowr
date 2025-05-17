@@ -133,10 +133,8 @@ export const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({
         margin: 18,
         position: 'top',
         formatter: '{start}',
-        textStyle: {
-          fontSize: 16,
-          fontWeight: 'bold'
-        }
+        fontSize: 16,
+        fontWeight: 'bold'
       },
       dayLabel: {
         firstDay: 1,
