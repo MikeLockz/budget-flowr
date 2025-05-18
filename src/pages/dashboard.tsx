@@ -17,7 +17,7 @@ import {
 
 export const Dashboard = () => {
   const { transactions, categoryChartData, isLoading } = useTransactionData(false); // Explicitly get non-archived transactions
-  const { visibleTransactionIds, resetFilters } = useFilterContext();
+  const { visibleTransactionIds, setVisibleTransactionIds, resetFilters } = useFilterContext();
   const { typeClassifications } = useVisualizationSettings();
 
   // Ensure transactions is always an array
@@ -92,11 +92,85 @@ export const Dashboard = () => {
 
   const transactionYears = getTransactionYears(displayTransactions);
 
+  // Quick filter functions
+  const applyDateFilter = (startDate: Date) => {
+    const filteredIds = transactionsArray
+      .filter(t => new Date(t.date) >= startDate)
+      .map(t => t.id);
+    setVisibleTransactionIds(filteredIds);
+  };
+
+  const filterLast30Days = () => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    applyDateFilter(startDate);
+  };
+
+  const filterPreviousMonth = () => {
+    const today = new Date();
+    const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const endOfPreviousMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    
+    const filteredIds = transactionsArray
+      .filter(t => {
+        const date = new Date(t.date);
+        return date >= previousMonth && date <= endOfPreviousMonth;
+      })
+      .map(t => t.id);
+    
+    setVisibleTransactionIds(filteredIds);
+  };
+
+  const filterPrevious2Months = () => {
+    const today = new Date();
+    const startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+    const endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+    
+    const filteredIds = transactionsArray
+      .filter(t => {
+        const date = new Date(t.date);
+        return date >= startDate && date <= endDate;
+      })
+      .map(t => t.id);
+    
+    setVisibleTransactionIds(filteredIds);
+  };
+
+  const filterPrevious6Months = () => {
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 6);
+    applyDateFilter(startDate);
+  };
+
+  // Filter transactions by category, preserving any existing filters
+  const filterByCategory = (category: string) => {
+    // Filter transactions by the selected category
+    const categoryTransactionIds = transactionsArray
+      .filter(t => t.categoryName === category)
+      .map(t => t.id);
+    
+    // Combine with existing filters if any
+    if (visibleTransactionIds.length > 0) {
+      // Intersection of current visible IDs and category IDs
+      const combinedIds = visibleTransactionIds.filter(id => 
+        categoryTransactionIds.includes(id)
+      );
+      setVisibleTransactionIds(combinedIds);
+    } else {
+      // No current filter, just use category filter
+      setVisibleTransactionIds(categoryTransactionIds);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap space-x-2">
+          <Button onClick={filterLast30Days} variant="outline" size="sm">Last 30 Days</Button>
+          <Button onClick={filterPreviousMonth} variant="outline" size="sm">Previous Month</Button>
+          <Button onClick={filterPrevious2Months} variant="outline" size="sm">Previous 2 Months</Button>
+          <Button onClick={filterPrevious6Months} variant="outline" size="sm">Previous 6 Months</Button>
           <Button onClick={resetFilters}>Reset Filters</Button>
         </div>
       </div>
@@ -109,7 +183,6 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div data-testid="total-income" className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</div>
-            <p className="text-xs text-muted-foreground">+20% from last month</p>
           </CardContent>
         </Card>
         <Card>
@@ -118,7 +191,6 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div data-testid="total-expenses" className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div>
-            <p className="text-xs text-muted-foreground">+5% from last month</p>
           </CardContent>
         </Card>
         <Card>
@@ -129,7 +201,6 @@ export const Dashboard = () => {
             <div data-testid="balance" className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(balance)}
             </div>
-            <p className="text-xs text-muted-foreground">+12% from last month</p>
           </CardContent>
         </Card>
       </div>
@@ -147,18 +218,27 @@ export const Dashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle>Expenses by Category</CardTitle>
+            <CardDescription>Click on a category to filter</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            <BarChart data={filteredCategoryChartData.barChartData} xAxisData={filteredCategoryChartData.categories} />
+            <BarChart 
+              data={filteredCategoryChartData.barChartData} 
+              xAxisData={filteredCategoryChartData.categories} 
+              horizontal={true}
+              onCategoryClick={filterByCategory}
+            />
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>Spending Distribution</CardTitle>
-            <CardDescription>Current month breakdown</CardDescription>
+            <CardDescription>Click on a segment to filter</CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            <PieChart data={filteredCategoryChartData.pieChartData} />
+            <PieChart 
+              data={filteredCategoryChartData.pieChartData}
+              onCategoryClick={filterByCategory}
+            />
           </CardContent>
         </Card>
         <Card className="col-span-2">
@@ -182,7 +262,11 @@ export const Dashboard = () => {
           {isLoading ? (
             <div className="flex justify-center p-4">Loading transactions...</div>
           ) : (
-            <TransactionsGrid transactions={displayTransactions} />
+            <TransactionsGrid 
+              transactions={displayTransactions}
+              categoryColors={filteredCategoryChartData.categoryColors}
+              categories={filteredCategoryChartData.categories}
+            />
           )}
         </CardContent>
       </Card>
