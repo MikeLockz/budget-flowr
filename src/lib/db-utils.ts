@@ -12,6 +12,23 @@ export async function initializeDatabase(): Promise<BudgetFlowrDB> {
       await db.open();
     }
     console.log(`Database opened successfully. Current version: ${db.verno}`);
+    
+    // Log counts of entities for diagnostics
+    const transactionCount = await db.transactions.count();
+    const categoryCount = await db.categories.count();
+    console.log('DB-UTILS: Entity counts on initialization', {
+      transactions: transactionCount,
+      categories: categoryCount
+    });
+    
+    // Log transaction types available in the database
+    const transactions = await db.transactions.toArray();
+    const types = new Set<string>();
+    transactions.forEach(t => {
+      if (t.type) types.add(t.type);
+    });
+    console.log('DB-UTILS: Transaction types in database:', Array.from(types));
+    
     return db;
   } catch (error) {
     console.error('Failed to open database:', error);

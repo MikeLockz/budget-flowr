@@ -96,7 +96,16 @@ function ImportData() {
 
   // Navigation to dashboard
   const goToDashboard = () => {
-    router.navigate({ to: '/' });
+    // Force a data refresh before navigating
+    import('@/lib/query-client').then(({ queryClient }) => {
+      // Invalidate queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      // Navigate with a small delay to ensure data refresh
+      setTimeout(() => {
+        router.navigate({ to: '/' });
+      }, 100);
+    });
   };
 
   // Navigation to import history

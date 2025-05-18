@@ -23,9 +23,25 @@ function formatDate(dateStr: string): string {
  * @returns number
  */
 function parseAmount(amountStr: string): number {
-  if (!amountStr) return 0;
+  console.log('TRANSACTION-MAPPER: Parsing amount', { amountStr });
+  
+  if (!amountStr) {
+    console.log('TRANSACTION-MAPPER: Empty amount string, returning 0');
+    return 0;
+  }
+  
   const cleaned = amountStr.replace(/[^0-9.-]+/g, '');
-  return parseFloat(cleaned);
+  console.log('TRANSACTION-MAPPER: Cleaned amount string', { originalStr: amountStr, cleanedStr: cleaned });
+  
+  const amount = parseFloat(cleaned);
+  
+  if (isNaN(amount)) {
+    console.warn('TRANSACTION-MAPPER: Failed to parse amount, returning 0', { amountStr, cleaned });
+    return 0;
+  }
+  
+  console.log('TRANSACTION-MAPPER: Parsed amount', { amountStr, cleaned, amount });
+  return amount;
 }
 
 /**
@@ -63,14 +79,46 @@ function determineType(amountStr: string, typeStr?: string): 'income' | 'expense
  * @returns Array of Transaction objects
  */
 export function mapToTransactions(csvData: ParsedCSVData[]): Transaction[] {
-  return csvData.map(row => ({
-    id: generateUUID(),
-    date: formatDate(row.date || row.Date || ''),
-    description: row.description || row.Description || 'Imported Transaction',
-    categoryId: 'uncategorized', // Default category
-    amount: parseAmount(row.amount || row.Amount || '0'),
-    type: determineType(row.amount || row.Amount || '0', row.type || row.Type),
-    status: 'completed',
-    accountId: 'default', // Default account
-  }));
+  console.log('TRANSACTION-MAPPER: Mapping CSV data to transactions', { rowCount: csvData.length });
+  
+  const transactions = csvData.map(row => {
+    const transaction = {
+      id: generateUUID(),
+      date: formatDate(row.date || row.Date || ''),
+      description: row.description || row.Description || 'Imported Transaction',
+      categoryId: 'uncategorized', // Default category
+      amount: parseAmount(row.amount || row.Amount || '0'),
+      type: determineType(row.amount || row.Amount || '0', row.type || row.Type),
+      status: 'completed' as 'completed' | 'pending' | 'upcoming',
+      accountId: 'default', // Default account
+    };
+    
+    // Log a sample of transactions (first 5)
+    if (csvData.indexOf(row) < 5) {
+      console.log('TRANSACTION-MAPPER: Created transaction', { 
+        index: csvData.indexOf(row),
+        rawRow: row,
+        mappedTransaction: transaction 
+      });
+    }
+    
+    return transaction;
+  });
+  
+  // Log some statistics
+  const types = new Map<string, number>();
+  let zeroAmountCount = 0;
+  
+  transactions.forEach(t => {
+    types.set(t.type, (types.get(t.type) || 0) + 1);
+    if (t.amount === 0) zeroAmountCount++;
+  });
+  
+  console.log('TRANSACTION-MAPPER: Mapping complete', { 
+    transactionCount: transactions.length,
+    typeBreakdown: Object.fromEntries(types.entries()),
+    zeroAmountCount
+  });
+  
+  return transactions;
 }

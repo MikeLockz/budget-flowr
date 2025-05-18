@@ -28,6 +28,7 @@ const DEFAULT_EXPENSE_TYPES = ['expense', 'True Expense', 'Capital Expense', 'Ca
 
 // Build the default classification map
 const buildDefaultClassifications = () => {
+  console.log('VISUALIZATION-SETTINGS: Building default classifications');
   const classifications: { [key: string]: TransactionTypeClassification } = {};
   
   DEFAULT_INCOME_TYPES.forEach(type => {
@@ -38,35 +39,45 @@ const buildDefaultClassifications = () => {
     classifications[type] = 'expense';
   });
   
+  console.log('VISUALIZATION-SETTINGS: Default classifications built', classifications);
   return classifications;
 };
 
+// Create store with properly typed persist middleware for Zustand v5
 export const useVisualizationSettings = create<VisualizationSettings>()(
   persist(
-    (set) => ({
-      typeClassifications: buildDefaultClassifications(),
-      defaultIncomeTypes: DEFAULT_INCOME_TYPES,
-      defaultExpenseTypes: DEFAULT_EXPENSE_TYPES,
+    (set) => {
+      console.log('VISUALIZATION-SETTINGS: Creating store');
+      return {
+        typeClassifications: buildDefaultClassifications(),
+        defaultIncomeTypes: DEFAULT_INCOME_TYPES,
+        defaultExpenseTypes: DEFAULT_EXPENSE_TYPES,
       
-      addTypeClassification: (type, classification) => 
-        set((state) => {
-          const newClassifications = { ...state.typeClassifications };
-          newClassifications[type] = classification;
-          return { typeClassifications: newClassifications };
-        }),
+        addTypeClassification: (type, classification) => 
+          set((state) => {
+            console.log('VISUALIZATION-SETTINGS: Adding type classification', { type, classification });
+            const newClassifications = { ...state.typeClassifications };
+            newClassifications[type] = classification;
+            return { typeClassifications: newClassifications };
+          }),
       
-      removeTypeClassification: (type) => 
-        set((state) => {
-          const newClassifications = { ...state.typeClassifications };
-          delete newClassifications[type];
-          return { typeClassifications: newClassifications };
-        }),
+        removeTypeClassification: (type) => 
+          set((state) => {
+            console.log('VISUALIZATION-SETTINGS: Removing type classification', { type });
+            const newClassifications = { ...state.typeClassifications };
+            delete newClassifications[type];
+            return { typeClassifications: newClassifications };
+          }),
       
-      resetToDefaults: () => 
-        set(() => ({
-          typeClassifications: buildDefaultClassifications()
-        })),
-    }),
+        resetToDefaults: () => 
+          set(() => {
+            console.log('VISUALIZATION-SETTINGS: Resetting to defaults');
+            return {
+              typeClassifications: buildDefaultClassifications()
+            };
+          }),
+      };
+    },
     {
       name: 'budget-flowr-visualization-settings',
     }

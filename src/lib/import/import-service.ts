@@ -101,8 +101,19 @@ export async function importCSVWithMapping(
   mapping: FieldMapping
 ): Promise<{ insertedIds: string[]; duplicateCount: number; updatedCount: number; skippedCount: number }> {
   try {
+    console.log('IMPORT-SERVICE: Starting import with mapping', { fileName: file.name });
     const parsedData = await parseCSVForMapping(file);
+    console.log('IMPORT-SERVICE: Parsed CSV data', { 
+      rowCount: parsedData.allData.length,
+      firstRowSample: parsedData.allData[0] 
+    });
+    
     const { transactions, skippedRows } = applyMapping(parsedData.allData, mapping);
+    console.log('IMPORT-SERVICE: Applied mapping', { 
+      transactionsCount: transactions.length,
+      skippedCount: skippedRows.length,
+      sampleTransaction: transactions[0]
+    });
     
     // Create import session
     const importId = generateUUID();
@@ -177,6 +188,14 @@ export async function importCSVWithMapping(
 
     // Save the import session
     await importRepo.add(importSession);
+    
+    console.log('IMPORT-SERVICE: Import completed successfully', { 
+      insertedCount: insertedIds.length,
+      duplicateCount,
+      updatedCount,
+      skippedCount: skippedRows.length,
+      insertedIds: insertedIds.slice(0, 3) // Log first few IDs as sample
+    });
 
     return { insertedIds, duplicateCount, updatedCount, skippedCount: skippedRows.length };
   } catch (error) {

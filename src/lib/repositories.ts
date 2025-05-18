@@ -17,7 +17,10 @@ export class BaseRepository<T, K> {
   }
 
   async add(item: T): Promise<K> {
-    return this.table.add(item);
+    console.log(`REPOSITORY: Adding item to ${this.table.name}`, item);
+    const id = await this.table.add(item);
+    console.log(`REPOSITORY: Added item to ${this.table.name} with ID:`, id);
+    return id;
   }
 
   async update(item: T): Promise<void> {
@@ -36,7 +39,12 @@ export class TransactionRepository extends BaseRepository<Transaction, string> {
   }
 
   async getActiveTransactions(): Promise<Transaction[]> {
-    return this.table.filter(transaction => transaction.archived !== true).toArray();
+    const transactions = await this.table.filter(transaction => transaction.archived !== true).toArray();
+    console.log('TRANSACTION REPOSITORY: Retrieved active transactions', { 
+      count: transactions.length,
+      sampleIds: transactions.slice(0, 3).map(t => t.id)
+    });
+    return transactions;
   }
 
   async getArchivedTransactions(): Promise<Transaction[]> {
