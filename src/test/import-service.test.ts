@@ -1,211 +1,216 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-import * as importService from '../lib/import/import-service';
-import * as transactionMapper from '../lib/import/transaction-mapper';
-import { transactionRepository, importRepo } from '../lib/repositories';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { FieldMapping } from '../lib/import/field-mapping-types';
+import { Transaction } from '../lib/db';
+import 'fake-indexeddb/auto';
 
-vi.mock('../lib/import/import-service', () => ({
-  parseCSVForMapping: vi.fn(),
-  importCSVFile: vi.fn()
+// Mock dependencies before importing the subject under test
+vi.mock('../lib/import/csv-file-parser', () => ({
+  parseCSVFile: vi.fn()
 }));
 
-vi.mock('../lib/import/transaction-mapper', () => ({
-  mapToTransactions: vi.fn()
+vi.mock('../lib/import/field-mapping-service', () => ({
+  generatePreview: vi.fn(),
+  applyMapping: vi.fn()
 }));
 
-vi.mock('../lib/repositories', () => ({
-  transactionRepository: {
-    add: vi.fn(),
-    update: vi.fn()
-  },
-  importRepo: {
-    add: vi.fn()
-  },
-  categoryRepository: {
-    getAll: vi.fn().mockResolvedValue([]),
-    add: vi.fn()
-  }
+vi.mock('../lib/import/transaction-import-service', () => ({
+  processTransactions: vi.fn()
 }));
 
-const SAMPLE_CSV_CONTENT = `date,description,amount
-2025-01-01,Test Transaction,100.00
-2025-01-02,Another Transaction,200.50`;
+// Import modules after mocking
+import * as csvFileParser from '../lib/import/csv-file-parser';
+import * as fieldMappingService from '../lib/import/field-mapping-service';
+import * as transactionImportService from '../lib/import/transaction-import-service';
+import { 
+  parseCSVForMapping,
+  previewMappedTransactions,
+  importCSVWithMapping,
+  importCSVFile,
+  findDuplicateTransactions, 
+  removeDuplicateTransactions, 
+  mergeDuplicateTransactions 
+} from '../lib/import/import-service';
 
 describe('Import Service', () => {
+  // Test data
+  const mockFile = new File(['test,csv,content'], 'test.csv', { type: 'text/csv' });
+  
+  const mockHeaders = ['date', 'description', 'amount'];
+  const mockSampleData = [
+    { date: '2025-01-01', description: 'Test Transaction', amount: '100.00' },
+    { date: '2025-01-02', description: 'Another Transaction', amount: '200.50' }
+  ];
+  const mockAllData = [
+    { date: '2025-01-01', description: 'Test Transaction', amount: '100.00' },
+    { date: '2025-01-02', description: 'Another Transaction', amount: '200.50' },
+    { date: '2025-01-03', description: 'Third Transaction', amount: '300.75' }
+  ];
+  
+  const mockCSVData = {
+    headers: mockHeaders,
+    sampleData: mockSampleData,
+    allData: mockAllData
+  };
+  
+  const mockMapping: FieldMapping = {
+    mappings: {
+      date: 'date',
+      description: 'description',
+      amount: 'amount',
+      type: null,
+      categoryId: null,
+      status: null,
+      accountId: null
+    },
+    options: {
+      dateFormat: 'YYYY-MM-DD',
+      negativeAmountIsExpense: true,
+      invertAmount: false
+    }
+  };
+  
+  const mockTransactions: Transaction[] = [
+    {
+      id: 'transaction-1',
+      date: '2025-01-01',
+      description: 'Test Transaction',
+      amount: 100.00,
+      categoryId: 'uncategorized',
+      type: 'income',
+      status: 'completed',
+      accountId: 'default'
+    },
+    {
+      id: 'transaction-2',
+      date: '2025-01-02',
+      description: 'Another Transaction',
+      amount: 200.50,
+      categoryId: 'uncategorized',
+      type: 'income',
+      status: 'completed',
+      accountId: 'default'
+    }
+  ];
+  
+  const mockImportResult = {
+    insertedIds: ['id-1', 'id-2'],
+    duplicateCount: 0,
+    updatedCount: 0,
+    skippedCount: 0
+  };
+
+  // Reset mocks before each test
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    
+    // Setup mock implementations
+    (csvFileParser.parseCSVFile as ReturnType<typeof vi.fn>).mockResolvedValue(mockCSVData);
+    (fieldMappingService.generatePreview as ReturnType<typeof vi.fn>).mockReturnValue({
+      rawData: mockSampleData,
+      mappedTransactions: mockTransactions,
+      skippedRows: []
+    });
+    (fieldMappingService.applyMapping as ReturnType<typeof vi.fn>).mockReturnValue({
+      transactions: mockTransactions,
+      skippedRows: []
+    });
+    (transactionImportService.processTransactions as ReturnType<typeof vi.fn>).mockResolvedValue(mockImportResult);
   });
 
-  it('should import CSV file and return inserted IDs', async () => {
-    // Mock the CSV parsing
-    (importService.parseCSVForMapping as unknown as Mock).mockResolvedValue({
-      headers: ['date', 'description', 'amount'],
-      sampleData: [
-        { date: '2025-01-01', description: 'Test Transaction', amount: '100.00' },
-        { date: '2025-01-02', description: 'Another Transaction', amount: '200.50' }
-      ],
-      allData: [
-        { date: '2025-01-01', description: 'Test Transaction', amount: '100.00' },
-        { date: '2025-01-02', description: 'Another Transaction', amount: '200.50' }
-      ]
+  describe('parseCSVForMapping', () => {
+    it('should parse a CSV file and return headers and data samples', async () => {
+      const result = await parseCSVForMapping(mockFile);
+      
+      expect(csvFileParser.parseCSVFile).toHaveBeenCalledWith(mockFile);
+      expect(result).toEqual(mockCSVData);
     });
     
-    // Mock the transaction mapping
-    (transactionMapper.mapToTransactions as unknown as Mock).mockReturnValue([
-      { id: 'transaction-1', description: 'Test Transaction' },
-      { id: 'transaction-2', description: 'Another Transaction' }
-    ]);
-    
-    // Mock the repository add method
-    (transactionRepository.add as unknown as Mock)
-      .mockResolvedValueOnce('inserted-id-1')
-      .mockResolvedValueOnce('inserted-id-2');
-    
-    const mockFile = new File([SAMPLE_CSV_CONTENT], 'test.csv', { type: 'text/csv' });
-    (importService.importCSVFile as unknown as Mock).mockImplementation(async (file: File) => {
-      const parsedData = await importService.parseCSVForMapping(file);
-      const transactions = transactionMapper.mapToTransactions(parsedData.allData);
-      const insertedIds: string[] = [];
-      const duplicateCount = 0;
-      const updatedCount = 0;
+    it('should propagate errors from parseCSVFile', async () => {
+      const error = new Error('Parsing error');
+      (csvFileParser.parseCSVFile as ReturnType<typeof vi.fn>).mockRejectedValue(error);
       
-      for (const transaction of transactions) {
-        const id = await transactionRepository.add(transaction);
-        insertedIds.push(id);
-      }
+      await expect(parseCSVForMapping(mockFile)).rejects.toThrow('Parsing error');
+    });
+  });
+
+  describe('previewMappedTransactions', () => {
+    it('should generate preview data from CSV data and mapping', () => {
+      const result = previewMappedTransactions(mockCSVData, mockMapping);
       
-      await importRepo.add({
-        id: 'import-1',
-        date: new Date().toISOString().split('T')[0],
-        fileName: file.name,
-        totalCount: transactions.length,
-        importedCount: insertedIds.length,
-        duplicateCount: duplicateCount,
-        updatedCount: updatedCount
+      expect(fieldMappingService.generatePreview).toHaveBeenCalledWith(
+        mockSampleData, 
+        mockMapping
+      );
+      
+      expect(result).toHaveProperty('mapping', mockMapping);
+    });
+  });
+
+  describe('importCSVWithMapping', () => {
+    it('should import CSV data with the specified mapping', async () => {
+      const result = await importCSVWithMapping(mockFile, mockMapping);
+      
+      // Verify parseCSVForMapping was called
+      expect(csvFileParser.parseCSVFile).toHaveBeenCalledWith(mockFile);
+      
+      // Verify mapping was applied
+      expect(fieldMappingService.applyMapping).toHaveBeenCalledWith(
+        mockAllData,
+        mockMapping
+      );
+      
+      // Verify transactions were processed
+      expect(transactionImportService.processTransactions).toHaveBeenCalledWith(
+        mockTransactions,
+        mockFile.name,
+        mockAllData.length,
+        0 // skippedRows.length
+      );
+      
+      // Verify result was returned
+      expect(result).toEqual(mockImportResult);
+    });
+    
+    it('should handle errors during import', async () => {
+      const error = new Error('Import error');
+      (fieldMappingService.applyMapping as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw error;
       });
       
-      return { insertedIds, duplicateCount, updatedCount };
+      await expect(importCSVWithMapping(mockFile, mockMapping)).rejects.toThrow('Import error');
     });
-    
-    const result = await importService.importCSVFile(mockFile);
-    
-    expect(importService.parseCSVForMapping).toHaveBeenCalledWith(mockFile);
-    expect(transactionMapper.mapToTransactions).toHaveBeenCalled();
-    expect(transactionRepository.add).toHaveBeenCalledTimes(2);
-    expect(importRepo.add).toHaveBeenCalled();
-    expect(result.insertedIds).toEqual(['inserted-id-1', 'inserted-id-2']);
-    expect(result.duplicateCount).toBe(0);
-    expect(result.updatedCount).toBe(0);
   });
-  
-  it('should handle errors during import', async () => {
-    (importService.parseCSVForMapping as unknown as Mock).mockRejectedValue(new Error('Parse error'));
-    
-    const mockFile = new File([SAMPLE_CSV_CONTENT], 'test.csv', { type: 'text/csv' });
-    
-    (importService.importCSVFile as unknown as Mock).mockImplementation(async (file: File) => {
-      const parsedData = await importService.parseCSVForMapping(file);
-      const transactions = transactionMapper.mapToTransactions(parsedData.allData);
-      const insertedIds: string[] = [];
-      const duplicateCount = 0;
-      const updatedCount = 0;
+
+  describe('importCSVFile', () => {
+    it('should import a CSV file with default mapping', async () => {
+      const result = await importCSVFile(mockFile);
       
-      for (const transaction of transactions) {
-        const id = await transactionRepository.add(transaction);
-        insertedIds.push(id);
-      }
+      // Verify parseCSVForMapping was called
+      expect(csvFileParser.parseCSVFile).toHaveBeenCalledWith(mockFile);
       
-      return { insertedIds, duplicateCount, updatedCount };
+      // Verify a default mapping was created and used
+      expect(fieldMappingService.applyMapping).toHaveBeenCalled();
+      
+      // Verify result has expected structure
+      expect(result).toHaveProperty('insertedIds');
+      expect(result).toHaveProperty('duplicateCount');
+      expect(result).toHaveProperty('updatedCount');
     });
     
-    await expect(importService.importCSVFile(mockFile)).rejects.toThrow('Parse error');
-    expect(transactionRepository.add).not.toHaveBeenCalled();
+    it('should handle errors during import', async () => {
+      const error = new Error('Import error');
+      (csvFileParser.parseCSVFile as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+      
+      await expect(importCSVFile(mockFile)).rejects.toThrow('Import error');
+    });
   });
-  
-  it('should detect and update duplicate transactions', async () => {
-    // Mock the CSV parsing
-    (importService.parseCSVForMapping as unknown as Mock).mockResolvedValue({
-      headers: ['date', 'description', 'amount', 'categoryId'],
-      sampleData: [
-        { date: '2025-01-01', description: 'Test Transaction', amount: '100.00', categoryId: 'new-category' },
-        { date: '2025-01-01', description: 'Test Transaction', amount: '100.00', categoryId: 'updated-category' }, // Duplicate with different categoryId
-        { date: '2025-01-02', description: 'Another Transaction', amount: '200.50' }
-      ],
-      allData: [
-        { date: '2025-01-01', description: 'Test Transaction', amount: '100.00', categoryId: 'new-category' },
-        { date: '2025-01-01', description: 'Test Transaction', amount: '100.00', categoryId: 'updated-category' }, // Duplicate with different categoryId
-        { date: '2025-01-02', description: 'Another Transaction', amount: '200.50' }
-      ]
+
+  describe('Re-exported deduplication functions', () => {
+    it('should expose transaction deduplication functions', () => {
+      // Verify that the re-exported functions exist
+      expect(findDuplicateTransactions).toBeDefined();
+      expect(removeDuplicateTransactions).toBeDefined();
+      expect(mergeDuplicateTransactions).toBeDefined();
     });
-    
-    // Mock the transaction mapping
-    (transactionMapper.mapToTransactions as unknown as Mock).mockReturnValue([
-      { id: 'transaction-1', date: '2025-01-01', description: 'Test Transaction', amount: 100.00, categoryId: 'new-category' },
-      { id: 'transaction-2', date: '2025-01-01', description: 'Test Transaction', amount: 100.00, categoryId: 'updated-category' }, // Duplicate with different categoryId
-      { id: 'transaction-3', date: '2025-01-02', description: 'Another Transaction', amount: 200.50 }
-    ]);
-    
-    // Mock the repository methods
-    (transactionRepository.add as unknown as Mock)
-      .mockResolvedValueOnce('inserted-id-1')
-      .mockResolvedValueOnce('inserted-id-3');
-      
-    (transactionRepository.update as unknown as Mock)
-      .mockResolvedValue(undefined);
-    
-    const mockFile = new File([SAMPLE_CSV_CONTENT], 'test.csv', { type: 'text/csv' });
-    
-    // Mock the importCSVWithMapping function with duplicate detection and updating
-    (importService.importCSVFile as unknown as Mock).mockImplementation(async (file: File) => {
-      const parsedData = await importService.parseCSVForMapping(file);
-      const transactions = transactionMapper.mapToTransactions(parsedData.allData);
-      const insertedIds: string[] = [];
-      let duplicateCount = 0;
-      let updatedCount = 0;
-      
-      // Simulate duplicate detection and updating
-      for (const transaction of transactions) {
-        if (transaction.id === 'transaction-2') {
-          // This is our simulated duplicate with a different categoryId
-          duplicateCount++;
-          // Simulate updating the existing transaction with the new categoryId
-          await transactionRepository.update({
-            id: 'existing-id',
-            date: transaction.date,
-            description: transaction.description,
-            amount: transaction.amount,
-            categoryId: transaction.categoryId, // Updated field
-            type: 'expense',
-            status: 'completed'
-          });
-          updatedCount++;
-        } else {
-          const id = await transactionRepository.add(transaction);
-          insertedIds.push(id);
-        }
-      }
-      
-      await importRepo.add({
-        id: 'import-1',
-        date: new Date().toISOString().split('T')[0],
-        fileName: file.name,
-        totalCount: transactions.length,
-        importedCount: insertedIds.length,
-        duplicateCount: duplicateCount,
-        updatedCount: updatedCount
-      });
-      
-      return { insertedIds, duplicateCount, updatedCount };
-    });
-    
-    const result = await importService.importCSVFile(mockFile);
-    
-    expect(importService.parseCSVForMapping).toHaveBeenCalledWith(mockFile);
-    expect(transactionMapper.mapToTransactions).toHaveBeenCalled();
-    expect(transactionRepository.add).toHaveBeenCalledTimes(2); // Only 2 calls, not 3
-    expect(transactionRepository.update).toHaveBeenCalledTimes(1); // Updated 1 transaction
-    expect(importRepo.add).toHaveBeenCalled();
-    expect(result.insertedIds).toEqual(['inserted-id-1', 'inserted-id-3']);
-    expect(result.duplicateCount).toBe(1); // One duplicate detected
-    expect(result.updatedCount).toBe(1); // One duplicate updated
   });
 });

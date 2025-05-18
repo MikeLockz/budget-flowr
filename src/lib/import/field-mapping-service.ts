@@ -208,8 +208,8 @@ export async function saveMapping(mapping: FieldMapping): Promise<string> {
     mapping.id = generateUUID();
   }
 
-  // Removed dynamic table creation; assume fieldMappings table exists in DB schema
-  await db.table('fieldMappings').put(mapping);
+  // Use the proper table property instead of table() method
+  await db.fieldMappings.put(mapping);
   return mapping.id;
 }
 
@@ -221,7 +221,7 @@ export async function updateMapping(mapping: FieldMapping): Promise<string> {
     throw new Error('Cannot update a mapping without an ID');
   }
 
-  await db.table('fieldMappings').put(mapping);
+  await db.fieldMappings.put(mapping);
   return mapping.id;
 }
 
@@ -229,10 +229,12 @@ export async function updateMapping(mapping: FieldMapping): Promise<string> {
  * Get all saved mapping configurations.
  */
 export async function getSavedMappings(): Promise<FieldMapping[]> {
-  if (!db.tables.some(t => t.name === 'fieldMappings')) {
+  try {
+    return await db.fieldMappings.toArray();
+  } catch (error) {
+    console.error('Error getting saved mappings:', error);
     return [];
   }
-  return db.table('fieldMappings').toArray();
 }
 
 /**
