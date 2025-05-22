@@ -92,9 +92,12 @@ function ImportData() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       // Navigate with a small delay to ensure data refresh
-      setTimeout(() => {
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['categories'] })
+      ]).then(() => {
         router.navigate({ to: '/' });
-      }, 100);
+      });
     });
   };
 
