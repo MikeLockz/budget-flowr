@@ -94,9 +94,9 @@ export function mapToTransactions(csvData: ParsedCSVData[]): Transaction[] {
     };
     
     // Log a sample of transactions (first 5)
-    if (csvData.indexOf(row) < 5) {
+    if (index < 5) {
       console.log('TRANSACTION-MAPPER: Created transaction', { 
-        index: csvData.indexOf(row),
+        index: index,
         rawRow: row,
         mappedTransaction: transaction 
       });
