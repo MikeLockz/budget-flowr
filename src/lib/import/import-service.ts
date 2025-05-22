@@ -1,76 +1,19 @@
 import { ParsedCSVData } from './csv-parser';
-import { transactionRepository, categoryRepository, importRepo } from '@/lib/repositories';
 import { FieldMapping, PreviewData } from './field-mapping-types';
 import { applyMapping, generatePreview } from './field-mapping-service';
-import { generateUUID, ImportSession } from '@/lib/db';
-import { isDuplicateTransaction, updateDuplicateTransaction } from './transaction-deduplication';
+import { parseCSVFile } from './csv-file-parser';
+import { processTransactions } from './transaction-import-service';
 
 /**
  * Parse CSV and return headers and sample data for mapping UI.
+ * This is a wrapper around parseCSVFile from csv-file-parser.
  */
-export async function parseCSVForMapping(file: File): Promise<{ headers: string[]; sampleData: ParsedCSVData[]; allData: ParsedCSVData[] }> {
-  // Parse CSV twice: once for headers and sample, once for all data
-  return new Promise((resolve, reject) => {
-    const sampleRows: ParsedCSVData[] = [];
-    let headers: string[] = [];
-
-    // First parse for headers and sample
-    const firstParse = new Promise<void>((res, rej) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const text = reader.result as string;
-        import('papaparse').then(Papa => {
-          Papa.parse<ParsedCSVData>(text, {
-            header: true,
-            preview: 10,
-            skipEmptyLines: true,
-            complete: (results) => {
-              if (results.errors.length > 0) {
-                rej(results.errors);
-              } else {
-                headers = results.meta.fields || [];
-                sampleRows.push(...results.data);
-                res();
-              }
-            },
-            error: rej
-          });
-        });
-      };
-      reader.onerror = () => rej(reader.error);
-      reader.readAsText(file);
-    });
-
-    // Second parse for all data
-    const secondParse = new Promise<ParsedCSVData[]>((res, rej) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const text = reader.result as string;
-        import('papaparse').then(Papa => {
-          Papa.parse<ParsedCSVData>(text, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-              if (results.errors.length > 0) {
-                rej(results.errors);
-              } else {
-                res(results.data);
-              }
-            },
-            error: rej
-          });
-        });
-      };
-      reader.onerror = () => rej(reader.error);
-      reader.readAsText(file);
-    });
-
-    firstParse.then(() => {
-      secondParse.then(allData => {
-        resolve({ headers, sampleData: sampleRows, allData });
-      }).catch(reject);
-    }).catch(reject);
-  });
+export async function parseCSVForMapping(file: File): Promise<{ 
+  headers: string[]; 
+  sampleData: ParsedCSVData[]; 
+  allData: ParsedCSVData[] 
+}> {
+  return parseCSVFile(file);
 }
 
 /**
@@ -84,12 +27,13 @@ export function previewMappedTransactions(
   
   // Add the mapping and a reference to the file if available
   return {
-    ...preview,
+    rawData: preview.rawData,
+    mappedTransactions: preview.mappedTransactions,
+    skippedRows: preview.skippedRows,
     mapping,
     file: csvData.allData !== undefined ? {} as File : undefined, // Since we don't have the file object here
   };
 }
-
 
 /**
  * Import transactions with specified mapping.
@@ -101,84 +45,30 @@ export async function importCSVWithMapping(
   mapping: FieldMapping
 ): Promise<{ insertedIds: string[]; duplicateCount: number; updatedCount: number; skippedCount: number }> {
   try {
+    console.log('IMPORT-SERVICE: Starting import with mapping', { fileName: file.name });
+    
+    // Parse the CSV file
     const parsedData = await parseCSVForMapping(file);
-    const { transactions, skippedRows } = applyMapping(parsedData.allData, mapping);
-    
-    // Create import session
-    const importId = generateUUID();
-    const importSession: ImportSession = {
-      id: importId,
-      date: new Date().toISOString().split('T')[0],
-      fileName: file.name,
-      totalCount: parsedData.allData.length,
-      importedCount: 0,
-      duplicateCount: 0,
-      updatedCount: 0,
-      skippedCount: skippedRows.length
-    };
-
-    // Extract unique category IDs from transactions
-    const categoryIds = new Set<string>();
-    transactions.forEach(t => {
-      if (t.categoryId && t.categoryId !== 'uncategorized') {
-        categoryIds.add(t.categoryId);
-      }
+    console.log('IMPORT-SERVICE: Parsed CSV data', { 
+      rowCount: parsedData.allData.length,
+      firstRowSample: parsedData.allData[0] 
     });
-
-    // Fetch existing categories
-    const existingCategories = await categoryRepository.getAll();
-    const existingCategoryIds = new Set(existingCategories.map(c => c.id));
-
-    // Create new categories for IDs that don't exist yet
-    const categoriesToCreate = Array.from(categoryIds)
-      .filter(id => !existingCategoryIds.has(id))
-      .map(id => ({
-        id,
-        name: id // Use the ID as the name
-      }));
-
-    // Add new categories to the database
-    for (const category of categoriesToCreate) {
-      await categoryRepository.add(category);
-    }
-
-    // Ensure uncategorized category exists
-    if (!existingCategoryIds.has('uncategorized')) {
-      await categoryRepository.add({
-        id: 'uncategorized',
-        name: 'Uncategorized'
-      });
-    }
-
-    // Now insert the transactions, updating duplicates with new field values
-    const insertedIds: string[] = [];
-    let duplicateCount = 0;
-    let updatedCount = 0;
-
-    for (const transaction of transactions) {
-      // Check if this transaction is a duplicate
-      const { isDuplicate, existingTransaction } = await isDuplicateTransaction(transaction);
-
-      if (isDuplicate && existingTransaction) {
-        duplicateCount++;
-        // Update non-index fields if they have different values
-        await updateDuplicateTransaction(existingTransaction, transaction);
-        updatedCount++;
-      } else {
-        const id = await transactionRepository.add(transaction);
-        insertedIds.push(id);
-      }
-    }
     
-    // Update import session with results
-    importSession.importedCount = insertedIds.length;
-    importSession.duplicateCount = duplicateCount;
-    importSession.updatedCount = updatedCount;
-
-    // Save the import session
-    await importRepo.add(importSession);
-
-    return { insertedIds, duplicateCount, updatedCount, skippedCount: skippedRows.length };
+    // Apply mapping to convert CSV data to transactions
+    const { transactions, skippedRows } = applyMapping(parsedData.allData, mapping);
+    console.log('IMPORT-SERVICE: Applied mapping', { 
+      transactionsCount: transactions.length,
+      skippedCount: skippedRows.length,
+      sampleTransaction: transactions[0]
+    });
+    
+    // Process transactions (handling duplicates, creating categories, etc.)
+    return await processTransactions(
+      transactions, 
+      file.name, 
+      parsedData.allData.length, 
+      skippedRows.length
+    );
   } catch (error) {
     console.error('Error importing CSV file:', error);
     throw error;
@@ -210,7 +100,12 @@ export async function importCSVFile(file: File): Promise<{ insertedIds: string[]
       }
     };
 
-    return importCSVWithMapping(file, defaultMapping);
+    const result = await importCSVWithMapping(file, defaultMapping);
+    return { 
+      insertedIds: result.insertedIds, 
+      duplicateCount: result.duplicateCount, 
+      updatedCount: result.updatedCount 
+    };
   } catch (error) {
     console.error('Error importing CSV file:', error);
     throw error;

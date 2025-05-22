@@ -1,4 +1,4 @@
-import { useCategoryColors, getCategoryColor } from '@/lib/store/category-colors';
+// No imports needed here
 
 // Utility function to determine if text should be light or dark based on background color
 export function getTextColorForBackground(hexColor: string): string {
@@ -45,11 +45,16 @@ export function createCategoryColorMap(
   return colorMap;
 }
 
-// Get color for a category using the store if available
+// Get color for a category using a static color palette
 export function getCategoryColorFromStore(
-  category: string,
+  _category: string, // Prefix with underscore to indicate it's intentionally unused
   index: number = 0
 ): string {
-  const { colorMap } = useCategoryColors.getState();
-  return getCategoryColor(category, colorMap, index);
+  const colorPalette = [
+    '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+    '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#4682b4',
+    '#8b008b', '#b8860b', '#008080', '#800000', '#2e8b57',
+    '#ff69b4', '#8b4513', '#483d8b', '#808000', '#4b0082'
+  ];
+  return colorPalette[index % colorPalette.length];
 }

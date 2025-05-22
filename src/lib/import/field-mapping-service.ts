@@ -10,16 +10,38 @@ export function applyMapping(
   csvData: ParsedCSVData[],
   mapping: FieldMapping
 ): { transactions: Transaction[], skippedRows: ParsedCSVData[] } {
+  console.log('FIELD-MAPPING: Applying mapping to CSV data', { 
+    rowCount: csvData.length,
+    mapping
+  });
+  
   const transactions: Transaction[] = [];
   const skippedRows: ParsedCSVData[] = [];
+  const amountStats = {
+    total: 0,
+    min: Infinity,
+    max: -Infinity,
+    zero: 0,
+    nonNumeric: 0
+  };
 
-  csvData.forEach(row => {
+  csvData.forEach((row, index) => {
     const dateValue = mapping.mappings.date ? row[mapping.mappings.date] : '';
     const amountValue = mapping.mappings.amount ? row[mapping.mappings.amount] : '';
     const accountValue = mapping.mappings.accountId ? row[mapping.mappings.accountId] : '';
 
+    if (index < 5) {
+      console.log(`FIELD-MAPPING: Processing row ${index}`, { 
+        row, 
+        extractedFields: { dateValue, amountValue, accountValue } 
+      });
+    }
+
     // Skip rows with missing critical fields
     if (!dateValue || !amountValue || !accountValue) {
+      if (index < 5) {
+        console.log(`FIELD-MAPPING: Skipping row ${index} due to missing critical fields`);
+      }
       skippedRows.push(row);
       return;
     }
@@ -30,40 +52,116 @@ export function applyMapping(
     const statusValue = mapping.mappings.status ? row[mapping.mappings.status] : 'completed';
 
     let amount = parseAmount(amountValue);
+    // Track amount statistics
+    if (isNaN(amount)) {
+      amountStats.nonNumeric++;
+    } else {
+      amountStats.total += amount;
+      amountStats.min = Math.min(amountStats.min, amount);
+      amountStats.max = Math.max(amountStats.max, amount);
+      if (amount === 0) amountStats.zero++;
+    }
+    
     if (mapping.options.invertAmount) {
       amount = -amount;
+      if (index < 5) {
+        console.log(`FIELD-MAPPING: Inverted amount for row ${index}`, { 
+          originalAmount: amount, 
+          invertedAmount: -amount 
+        });
+      }
     }
 
     let type: 'income' | 'expense' | 'Capital Transfer' | 'Capital Inflow' | 'True Expense' | 'Reversed Capital Expense' | 'Reversed True Expense';
     if (typeValue) {
       type = determineTypeFromString(typeValue);
+      if (index < 5) {
+        console.log(`FIELD-MAPPING: Determined type from string for row ${index}`, { 
+          typeValue, 
+          determinedType: type 
+        });
+      }
     } else if (mapping.options.negativeAmountIsExpense) {
       type = amount < 0 ? 'expense' : 'income';
+      if (index < 5) {
+        console.log(`FIELD-MAPPING: Determined type from amount sign for row ${index}`, { 
+          amount, 
+          determinedType: type 
+        });
+      }
     } else {
       type = amount >= 0 ? 'income' : 'expense';
+      if (index < 5) {
+        console.log(`FIELD-MAPPING: Determined type from amount sign for row ${index}`, { 
+          amount, 
+          determinedType: type 
+        });
+      }
     }
 
     const formattedDate = formatDate(dateValue);
+    
+    // Create the transaction with Math.abs(amount)
+    const finalAmount = Math.abs(amount);
+    if (index < 5) {
+      console.log(`FIELD-MAPPING: Final amount for row ${index}`, { 
+        originalAmount: amount, 
+        finalAmount 
+      });
+    }
 
-    transactions.push({
+    const transaction = {
       id: generateUUID(),
       date: formattedDate,
       description: descValue,
       categoryId: categoryValue,
-      amount: Math.abs(amount),
+      amount: finalAmount,
       type,
       status: statusValue as 'completed' | 'pending' | 'upcoming',
       accountId: accountValue
-    });
+    };
+    
+    if (index < 5) {
+      console.log(`FIELD-MAPPING: Created transaction for row ${index}`, { transaction });
+    }
+    
+    transactions.push(transaction);
+  });
+
+  // Calculate statistics about the transactions
+  const typeStats = new Map<string, number>();
+  let nonZeroAmountCount = 0;
+  
+  transactions.forEach(t => {
+    typeStats.set(t.type, (typeStats.get(t.type) || 0) + 1);
+    if (t.amount > 0) nonZeroAmountCount++;
+  });
+  
+  console.log('FIELD-MAPPING: Mapping complete', { 
+    totalTransactions: transactions.length,
+    skippedRows: skippedRows.length,
+    amountStats,
+    typeBreakdown: Object.fromEntries(typeStats.entries()),
+    nonZeroAmountCount
   });
 
   return { transactions, skippedRows };
 }
 
 function parseAmount(amountStr: string): number {
-  if (!amountStr) return 0;
+  if (!amountStr) {
+    console.log('FIELD-MAPPING: Empty amount string, returning 0');
+    return 0;
+  }
+  
+  console.log('FIELD-MAPPING: Parsing amount', { amountStr });
   const cleaned = amountStr.replace(/[^0-9.-]+/g, '');
-  return parseFloat(cleaned) || 0;
+  console.log('FIELD-MAPPING: Cleaned amount', { original: amountStr, cleaned });
+  
+  const amount = parseFloat(cleaned) || 0;
+  console.log('FIELD-MAPPING: Parsed amount', { original: amountStr, cleaned, amount });
+  
+  return amount;
 }
 
 function determineTypeFromString(typeStr: string): 'income' | 'expense' | 'Capital Transfer' | 'Capital Inflow' | 'True Expense' | 'Reversed Capital Expense' | 'Reversed True Expense' {
@@ -110,8 +208,8 @@ export async function saveMapping(mapping: FieldMapping): Promise<string> {
     mapping.id = generateUUID();
   }
 
-  // Removed dynamic table creation; assume fieldMappings table exists in DB schema
-  await db.table('fieldMappings').put(mapping);
+  // Use the proper table property instead of table() method
+  await db.fieldMappings.put(mapping);
   return mapping.id;
 }
 
@@ -123,7 +221,7 @@ export async function updateMapping(mapping: FieldMapping): Promise<string> {
     throw new Error('Cannot update a mapping without an ID');
   }
 
-  await db.table('fieldMappings').put(mapping);
+  await db.fieldMappings.put(mapping);
   return mapping.id;
 }
 
@@ -131,10 +229,12 @@ export async function updateMapping(mapping: FieldMapping): Promise<string> {
  * Get all saved mapping configurations.
  */
 export async function getSavedMappings(): Promise<FieldMapping[]> {
-  if (!db.tables.some(t => t.name === 'fieldMappings')) {
+  try {
+    return await db.fieldMappings.toArray();
+  } catch (error) {
+    console.error('Error getting saved mappings:', error);
     return [];
   }
-  return db.table('fieldMappings').toArray();
 }
 
 /**

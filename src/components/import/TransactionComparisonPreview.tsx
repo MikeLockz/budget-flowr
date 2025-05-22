@@ -41,7 +41,9 @@ export const TransactionComparisonPreview: React.FC<TransactionComparisonPreview
     setImporting(true);
     try {
       const result = await importCSVWithMapping(file, mapping);
+      // Explicitly invalidate all transaction and category related queries
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       if (onImportComplete) {
         onImportComplete(result);
       }

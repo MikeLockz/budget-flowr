@@ -8,8 +8,7 @@ import { FieldMappingUI } from '@/components/import/FieldMappingUI';
 import { TransactionComparisonPreview } from '@/components/import/TransactionComparisonPreview';
 import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from '@tanstack/react-router';
-import { FieldMapping } from '@/lib/import/field-mapping-types';
-import { Transaction } from '@/lib/db';
+import { FieldMapping, PreviewData } from '@/lib/import/field-mapping-types';
 import { CheckCircle } from 'lucide-react';
 
 function ImportData() {
@@ -19,10 +18,7 @@ function ImportData() {
   const [status, setStatus] = useState<string>('');
   const [csvData, setCsvData] = useState<{ headers: string[]; sampleData: Record<string, string>[]; allData: Record<string, string>[] } | null>(null);
   const [mapping, setMapping] = useState<FieldMapping | null>(null);
-  const [previewData, setPreviewData] = useState<{
-    rawData: Record<string, string>[];
-    mappedTransactions: Transaction[];
-  } | null>(null);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [importResult, setImportResult] = useState<{
     insertedIds: string[];
     duplicateCount: number;
@@ -51,13 +47,7 @@ function ImportData() {
   };
 
   // Handle preview generation
-  const handlePreviewGenerated = (preview: {
-    rawData: Record<string, string>[];
-    mappedTransactions: Transaction[];
-    skippedRows?: Record<string, string>[];
-    mapping?: FieldMapping;
-    file?: File;
-  }) => {
+  const handlePreviewGenerated = (preview: PreviewData) => {
     setPreviewData(preview);
     setCurrentStep(2); // Move to preview step
   };
@@ -96,7 +86,19 @@ function ImportData() {
 
   // Navigation to dashboard
   const goToDashboard = () => {
-    router.navigate({ to: '/' });
+    // Force a data refresh before navigating
+    import('@/lib/query-client').then(({ queryClient }) => {
+      // Invalidate queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      // Navigate with a small delay to ensure data refresh
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['categories'] })
+      ]).then(() => {
+        router.navigate({ to: '/' });
+      });
+    });
   };
 
   // Navigation to import history

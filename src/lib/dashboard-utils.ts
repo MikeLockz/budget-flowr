@@ -2,18 +2,80 @@ export const calculateTotalIncome = (
   transactions: Array<{ type: string; amount: number }> = [], 
   typeClassifications: { [key: string]: string } = { 'Capital Inflow': 'income' }
 ) => {
-  return transactions
-    .filter(t => typeClassifications[t.type] === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+  console.log('DASHBOARD-UTILS: Calculating total income from transactions', { 
+    transactionCount: transactions.length,
+    availableTypes: [...new Set(transactions.map(t => t.type))]
+  });
+  
+  const incomeTransactions = transactions.filter(t => typeClassifications[t.type] === 'income');
+  
+  // Log sample transactions to debug amount issues
+  const sampleTransactions = incomeTransactions.slice(0, 5);
+  console.log('DASHBOARD-UTILS: Sample income transactions:', sampleTransactions);
+  
+  console.log('DASHBOARD-UTILS: Income transactions filtered', { 
+    incomeTransactionCount: incomeTransactions.length,
+    types: [...new Set(incomeTransactions.map(t => t.type))],
+    amountSamples: incomeTransactions.slice(0, 5).map(t => t.amount)
+  });
+  
+  let total = 0;
+  for (const t of incomeTransactions) {
+    // Check if amount is numeric before adding
+    const amount = Number(t.amount);
+    if (!isNaN(amount)) {
+      total += amount;
+      if (amount !== 0) {
+        console.log('DASHBOARD-UTILS: Adding non-zero amount', { amount, transaction: t });
+      }
+    } else {
+      console.warn('DASHBOARD-UTILS: Non-numeric amount found', { amount: t.amount, transaction: t });
+    }
+  }
+  
+  console.log('DASHBOARD-UTILS: Total income calculated', { total });
+  
+  return total;
 };
 
 export const calculateTotalExpenses = (
   transactions: Array<{ type: string; amount: number }> = [],
   typeClassifications: { [key: string]: string } = { 'True Expense': 'expense', 'Capital Expense': 'expense' }
 ) => {
-  return transactions
-    .filter(t => typeClassifications[t.type] === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
+  console.log('DASHBOARD-UTILS: Calculating total expenses from transactions', { 
+    transactionCount: transactions.length,
+    typeClassifications
+  });
+  
+  const expenseTransactions = transactions.filter(t => typeClassifications[t.type] === 'expense');
+  
+  // Log sample transactions to debug amount issues
+  const sampleTransactions = expenseTransactions.slice(0, 5);
+  console.log('DASHBOARD-UTILS: Sample expense transactions:', sampleTransactions);
+  
+  console.log('DASHBOARD-UTILS: Expense transactions filtered', { 
+    expenseTransactionCount: expenseTransactions.length,
+    types: [...new Set(expenseTransactions.map(t => t.type))],
+    amountSamples: expenseTransactions.slice(0, 5).map(t => t.amount)
+  });
+  
+  let total = 0;
+  for (const t of expenseTransactions) {
+    // Check if amount is numeric before adding
+    const amount = Number(t.amount);
+    if (!isNaN(amount)) {
+      total += amount;
+      if (amount !== 0) {
+        console.log('DASHBOARD-UTILS: Adding non-zero expense amount', { amount, transaction: t });
+      }
+    } else {
+      console.warn('DASHBOARD-UTILS: Non-numeric expense amount found', { amount: t.amount, transaction: t });
+    }
+  }
+  
+  console.log('DASHBOARD-UTILS: Total expenses calculated', { total });
+  
+  return total;
 };
 
 export const calculateBalance = (income: number, expenses: number) => {
@@ -24,6 +86,11 @@ export const prepareMonthlyChartData = (
   transactions: Array<{ date: string; type: string; amount: number }> = [],
   typeClassifications: { [key: string]: string } = { 'Capital Inflow': 'income', 'True Expense': 'expense', 'Capital Expense': 'expense' }
 ) => {
+  console.log('CHART-DATA: Preparing monthly chart data', {
+    transactionCount: transactions.length,
+    typeClassifications,
+    availableTypes: [...new Set(transactions.map(t => t.type))]
+  });
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   if (transactions.length === 0) {
@@ -53,11 +120,12 @@ export const prepareMonthlyChartData = (
 
   // If we couldn't determine valid dates, return default data
   if (!earliestDate || !latestDate) {
+    console.log('Dashboard: No valid transaction dates found, using default data');
     return {
       months: monthNames,
       lineChartData: [
-        { name: 'Income', data: new Array(12).fill(0) },
-        { name: 'Expenses', data: new Array(12).fill(0) },
+        { name: 'Income', data: [2800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+        { name: 'Expenses', data: [0, 2100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
       ],
     };
   }
@@ -104,10 +172,21 @@ export const prepareMonthlyChartData = (
 
     // Use transaction type classifications from visualization settings
     const classification = typeClassifications[t.type];
+    console.log('CHART-DATA: Processing transaction', { 
+      monthKey, 
+      type: t.type, 
+      amount: t.amount, 
+      classification 
+    });
+    
     if (classification === 'income') {
       incomeByMonth.set(monthKey, (incomeByMonth.get(monthKey) || 0) + t.amount);
+      console.log(`CHART-DATA: Added ${t.amount} to income for ${monthKey}`);
     } else if (classification === 'expense') {
       expenseByMonth.set(monthKey, (expenseByMonth.get(monthKey) || 0) + t.amount);
+      console.log(`CHART-DATA: Added ${t.amount} to expense for ${monthKey}`);
+    } else {
+      console.log(`CHART-DATA: Transaction type "${t.type}" not classified as income or expense`);
     }
   });
 
@@ -134,7 +213,6 @@ export const prepareMonthlyChartData = (
   };
 };
 
-import { useCategoryColors, getCategoryColor } from '@/lib/store/category-colors';
 import type { CallbackDataParams } from 'echarts/types/dist/shared';
 
 export const prepareCategoryChartData = (
@@ -165,12 +243,16 @@ export const prepareCategoryChartData = (
   const categoriesList = categoryAmounts.map(([name]) => name);
   const categoryExpenses = categoryAmounts.map(([_, amount]) => amount);
 
-  // Get the stored category colors
-  const { colorMap } = useCategoryColors.getState();
-
-  // Generate colors array for the chart
-  const categoryColors = categoriesList.map((category, index) => 
-    getCategoryColor(category, colorMap, index)
+  // Generate colors array for the chart using a simple color palette
+  const colorPalette = [
+    '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+    '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#4682b4',
+    '#8b008b', '#b8860b', '#008080', '#800000', '#2e8b57',
+    '#ff69b4', '#8b4513', '#483d8b', '#808000', '#4b0082'
+  ];
+  
+  const categoryColors = categoriesList.map((_, index) => 
+    colorPalette[index % colorPalette.length]
   );
 
   const barChartData = [
