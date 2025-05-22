@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import { FieldMapping } from '../lib/import/field-mapping-types';
 import { Transaction } from '../lib/db';
 import 'fake-indexeddb/auto';
@@ -104,17 +104,17 @@ describe('Import Service', () => {
     vi.resetAllMocks();
     
     // Setup mock implementations
-    (csvFileParser.parseCSVFile as vi.Mock).mockResolvedValue(mockCSVData);
-    (fieldMappingService.generatePreview as vi.Mock).mockReturnValue({
+    (csvFileParser.parseCSVFile as Mock).mockResolvedValue(mockCSVData);
+    (fieldMappingService.generatePreview as Mock).mockReturnValue({
       rawData: mockSampleData,
       mappedTransactions: mockTransactions,
       skippedRows: []
     });
-    (fieldMappingService.applyMapping as vi.Mock).mockReturnValue({
+    (fieldMappingService.applyMapping as Mock).mockReturnValue({
       transactions: mockTransactions,
       skippedRows: []
     });
-    (transactionImportService.processTransactions as vi.Mock).mockResolvedValue(mockImportResult);
+    (transactionImportService.processTransactions as Mock).mockResolvedValue(mockImportResult);
   });
 
   describe('parseCSVForMapping', () => {

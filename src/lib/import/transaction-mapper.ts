@@ -81,7 +81,7 @@ function determineType(amountStr: string, typeStr?: string): 'income' | 'expense
 export function mapToTransactions(csvData: ParsedCSVData[]): Transaction[] {
   console.log('TRANSACTION-MAPPER: Mapping CSV data to transactions', { rowCount: csvData.length });
   
-  const transactions = csvData.map(row => {
+  const transactions = csvData.map((row, index) => {
     const transaction = {
       id: generateUUID(),
       date: formatDate(row.date || row.Date || ''),
