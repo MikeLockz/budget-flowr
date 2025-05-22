@@ -104,17 +104,17 @@ describe('Import Service', () => {
     vi.resetAllMocks();
     
     // Setup mock implementations
-    (csvFileParser.parseCSVFile as ReturnType<typeof vi.fn>).mockResolvedValue(mockCSVData);
-    (fieldMappingService.generatePreview as ReturnType<typeof vi.fn>).mockReturnValue({
+    (csvFileParser.parseCSVFile as vi.Mock).mockResolvedValue(mockCSVData);
+    (fieldMappingService.generatePreview as vi.Mock).mockReturnValue({
       rawData: mockSampleData,
       mappedTransactions: mockTransactions,
       skippedRows: []
     });
-    (fieldMappingService.applyMapping as ReturnType<typeof vi.fn>).mockReturnValue({
+    (fieldMappingService.applyMapping as vi.Mock).mockReturnValue({
       transactions: mockTransactions,
       skippedRows: []
     });
-    (transactionImportService.processTransactions as ReturnType<typeof vi.fn>).mockResolvedValue(mockImportResult);
+    (transactionImportService.processTransactions as vi.Mock).mockResolvedValue(mockImportResult);
   });
 
   describe('parseCSVForMapping', () => {
